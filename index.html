@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Data Detective Case 10</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: case-file workspace. Stage rail on top, active stage on the left, evidence log pinned on the right (stacks on phones). */
+:root{
+  --paper:#f3f6f9; --card:#ffffff; --ink:#10223f; --muted:#56667f; --line:#d3dce7; --grid:#e6ecf3;
+  --navy:#13294b; --navy-soft:#e3e9f3; --teal:#0d8487; --teal-soft:#dcf1f0; --amber:#d9901f; --amber-soft:#fbeed6;
+  --ok:#1d7f53; --ok-soft:#dff2e8; --bad:#b83d2a; --bad-soft:#f8e1dc; --on-accent:#ffffff;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0a1424; --card:#111f37; --ink:#e4ebf5; --muted:#9aa9c0; --line:#24375a; --grid:#1a2b48;
+  --navy:#8fb1e8; --navy-soft:#1a2c4c; --teal:#3cc2bf; --teal-soft:#0f3438; --amber:#f0b457; --amber-soft:#3a2c12;
+  --ok:#5bcf95; --ok-soft:#123425; --bad:#f0846f; --bad-soft:#3d1a14; --on-accent:#0a1424; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#0a1424; --card:#111f37; --ink:#e4ebf5; --muted:#9aa9c0; --line:#24375a; --grid:#1a2b48;
+  --navy:#8fb1e8; --navy-soft:#1a2c4c; --teal:#3cc2bf; --teal-soft:#0f3438; --amber:#f0b457; --amber-soft:#3a2c12;
+  --ok:#5bcf95; --ok-soft:#123425; --bad:#f0846f; --bad-soft:#3d1a14; --on-accent:#0a1424; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.55;margin:0}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:1.55rem;font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Header */
+.top{background:var(--navy);color:#fff;padding-block:12px;padding-inline:16px}
+:root[data-theme="dark"] .top{background:#0d1a30}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .top{background:#0d1a30} }
+.top-in{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand b{font-family:var(--f-display);font-size:1.25rem;font-weight:800;letter-spacing:-.01em;color:#fff}
+.brand span{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#9fe3e1}
+.top-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.04em;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.28);color:#fff;white-space:nowrap}
+.chip.amber{background:#d9901f;border-color:#d9901f;color:#13294b;font-weight:600}
+.tbtn{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:5px 11px;cursor:pointer;font-size:.85rem}
+.tbtn:hover{background:rgba(255,255,255,.1)}
+
+/* Rail */
+.rail-wrap{background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto}
+.rail{max-width:1240px;margin:0 auto;display:flex;gap:4px;padding-block:10px;padding-inline:16px;list-style:none;margin-block:0}
+.rail button{display:flex;align-items:center;gap:7px;background:transparent;border:1px solid transparent;border-radius:999px;padding:5px 11px 5px 6px;cursor:pointer;white-space:nowrap;color:var(--muted);font-size:.86rem}
+.rail button .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-family:var(--f-mono);font-size:.72rem;border:1.5px solid var(--line);color:var(--muted)}
+.rail button.done .n{background:var(--teal);border-color:var(--teal);color:var(--on-accent)}
+.rail button.cur{border-color:var(--navy);color:var(--ink);font-weight:600}
+.rail button.cur .n{border-color:var(--navy);color:var(--ink)}
+.rail button:disabled{opacity:.45;cursor:not-allowed}
+
+/* Workspace */
+.wrap{max-width:1240px;margin:0 auto;padding-block:22px 60px;padding-inline:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+@media (min-width:1020px){ .wrap.has-log{grid-template-columns:minmax(0,1fr) 330px} }
+.stage{display:flex;flex-direction:column;gap:18px;min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);font-weight:600}
+.lede{color:var(--muted);max-width:66ch}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel.case{border-left:5px solid var(--amber)}
+.panel h3 .q{font-family:var(--f-mono);color:var(--teal);font-weight:600;margin-right:6px}
+.prose{max-width:68ch;display:flex;flex-direction:column;gap:10px}
+.quote{font-style:italic;color:var(--muted);border-left:3px solid var(--line);padding-left:12px}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label,.lbl{font-size:.84rem;font-weight:600;color:var(--ink)}
+.field .hint{font-size:.8rem;color:var(--muted)}
+.field .inline{flex-wrap:nowrap}
+.row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-start}
+.row > .field{flex:1 1 160px}
+input[type=text],input[type=number],select,textarea{background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+input.numin{font-family:var(--f-mono);max-width:150px}
+textarea{min-height:92px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);outline:none;box-shadow:0 0 0 3px var(--teal-soft)}
+.unit{font-family:var(--f-mono);color:var(--muted);font-size:.9rem}
+.inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mcq{display:flex;flex-direction:column;gap:7px}
+.mcq label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;background:var(--paper)}
+.mcq label:hover{border-color:var(--teal)}
+.mcq input{margin-top:4px;accent-color:var(--teal)}
+.mcq label.sel{border-color:var(--teal);background:var(--teal-soft)}
+.btn{background:var(--teal);color:var(--on-accent);border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.navy{background:var(--navy);color:var(--card)}
+.btn.small{padding:6px 12px;font-size:.86rem}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fb{border-radius:8px;padding:10px 13px;font-size:.92rem;display:flex;flex-direction:column;gap:4px}
+.fb:empty{display:none}
+.fb.ok{background:var(--ok-soft);color:var(--ok)}
+.fb.bad{background:var(--bad-soft);color:var(--bad)}
+.fb.info{background:var(--amber-soft);color:var(--ink)}
+.fb .fbline{color:var(--ink)}
+.fb strong{color:inherit}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--navy-soft);color:var(--ink)}
+.tag.amber{background:var(--amber-soft)}
+.tag.teal{background:var(--teal-soft)}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--navy-soft);font-weight:600;font-size:.8rem}
+th .u{font-family:var(--f-mono);font-weight:400;color:var(--muted)}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tr.flag td{background:var(--amber-soft)}
+tr.excl td{color:var(--muted);text-decoration:line-through}
+tbody tr:last-child td{border-bottom:0}
+
+/* Evidence log */
+.log{display:flex;flex-direction:column;gap:12px;min-width:0}
+.log[hidden]{display:none}
+@media (min-width:1020px){ .log{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);align-self:start} }
+.log .panel{gap:10px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.86rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--f-mono);text-align:right}
+
+/* Plot */
+.plotbox{position:relative;width:100%;min-width:0}
+.plotbox canvas{display:block;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--card);touch-action:none}
+.readout{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--f-mono);font-size:.84rem;color:var(--muted)}
+.readout b{color:var(--ink);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;color:var(--muted)}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:7px 13px;cursor:pointer;font-size:.88rem;color:var(--muted)}
+.seg button.on{background:var(--navy);color:var(--card);font-weight:600}
+
+.checklist{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;font-size:.88rem}
+.checklist li::before{content:"○";display:inline-block;width:1.4em;color:var(--muted)}
+.checklist li.y::before{content:"●";color:var(--ok)}
+.wc{font-family:var(--f-mono);font-size:.76rem;color:var(--muted)}
+.starter{font-size:.84rem;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:6px;padding:7px 10px}
+
+/* Teacher */
+.tview{display:flex;flex-direction:column;gap:18px}
+.keylist{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
+.inlinecfm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.88rem}
+
+/* Report */
+.report{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:flex;flex-direction:column;gap:18px}
+.rep-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--navy);padding-bottom:12px}
+.rep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.rep-cell{border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.rep-cell .k{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.rep-cell .v{font-family:var(--f-mono);font-size:1rem}
+.rep-cer p{white-space:pre-wrap}
+.rep-img{width:100%;border:1px solid var(--line);border-radius:8px}
+.sign{display:flex;gap:30px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);padding-top:18px}
+.sign span{border-top:1px solid var(--muted);padding-top:4px;min-width:200px}
+
+@media (prefers-reduced-motion: no-preference){ .stage{animation:rise .25s ease-out} @keyframes rise{from{transform:translateY(6px)}to{transform:none}} }
+@media print{
+  :root{--paper:#fff;--card:#fff;--ink:#000;--muted:#444;--line:#bbb;--navy-soft:#eef1f6;--amber-soft:#fdf2df}
+  .top,.rail-wrap,.log,.noprint,.actions,.fb{display:none!important}
+  .wrap{display:block;padding:0}
+  .report{border:0;padding:0}
+  body{font-size:11pt}
+}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><b>PhysicsFlow · Data Detective</b><span id="caseTag"></span></div>
+    <div class="top-meta">
+      <span class="chip" id="chipTeam" hidden></span>
+      <span class="chip amber" id="chipTrack"></span>
+      
+    </div>
+  </div>
+</header>
+<nav class="rail-wrap noprint" aria-label="Lab stages"><ol class="rail" id="rail"></ol></nav>
+<main class="wrap" id="wrap">
+  <section class="stage" id="stage" aria-live="polite"></section>
+  <aside class="log" id="log" hidden></aside>
+</main>
+
+<script>
+/* =====================================================================
+   SETUP — teachers: edit these values, save the file, and share it.
+   ===================================================================== */
+const SETUP = {
+  track: "General",            // "General" | "Honors" | "AP Physics 2" | "IB Physics SL" | "IB Physics HL"
+  letStudentsPickTrack: false, // true = students choose their track on the first screen
+  classCode: "CLASS-A",        // every team's data depends on this code. Change it per class.
+  teams: 8,                    // number of lab teams (1–30)
+  schoolName: ""               // optional: printed on student reports
+};
+/* ===================================================================== */
+
+/* Apparatus diagram shown in the briefing (colours follow the light/dark theme). */
+const KIT_SVG = `<svg viewBox="0 0 480 262" width="100%" role="img" aria-label="Cooling set-up: an insulated travel mug with a double wall and a vacuum gap stands on the bench, filled with hot water and closed with its lid. A temperature probe passes through a small hole in the lid into the water and is wired to a data logger whose screen shows the drink's temperature T. A reference thermometer on the wall reads the room temperature T_room; it was also used to read the water's temperature T_i as it was poured. Delta T is T minus T_room." style="display:block;font-family:var(--f-body);font-size:12px">
+  <line x1="14" y1="236" x2="330" y2="236" stroke="var(--muted)" stroke-width="2"/>
+  <text x="16" y="252" fill="var(--muted)">bench</text>
+  <path d="M96 78 L104 232 Q104 236 108 236 L192 236 Q196 236 196 232 L204 78 Z" fill="var(--navy-soft)" stroke="var(--navy)" stroke-width="2"/>
+  <path d="M108 86 L114 222 Q114 226 118 226 L182 226 Q186 226 186 222 L192 86" fill="var(--card)" stroke="var(--navy)" stroke-width="1.5"/>
+  <path d="M109.2 112 L114 222 Q114 226 118 226 L182 226 Q186 226 186 222 L190.8 112 Z" fill="var(--amber-soft)" stroke="none"/>
+  <line x1="109.2" y1="112" x2="190.8" y2="112" stroke="var(--amber)" stroke-width="1.5"/>
+  <text x="138" y="176" fill="var(--ink)" font-weight="600" text-anchor="middle">hot water</text>
+  <text x="138" y="191" fill="var(--muted)" font-size="11" text-anchor="middle">temperature T</text>
+  <rect x="90" y="62" width="120" height="18" rx="5" fill="var(--navy)"/>
+  <text x="80" y="70" fill="var(--muted)" font-size="11" text-anchor="end">lid</text>
+  <line x1="40" y1="150" x2="99" y2="150" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="14" y="134" fill="var(--muted)" font-size="11">vacuum</text>
+  <text x="14" y="147" fill="var(--muted)" font-size="11">gap</text>
+  <text x="14" y="30" fill="var(--ink)" font-weight="600">Insulated travel mug</text>
+  <rect x="173" y="30" width="10" height="22" rx="3" fill="var(--ink)"/>
+  <line x1="178" y1="52" x2="178" y2="204" stroke="var(--ink)" stroke-width="3"/>
+  <circle cx="178" cy="205" r="3.5" fill="var(--ink)"/>
+  <path d="M178 30 C178 12 240 10 262 40" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+  <text x="190" y="48" fill="var(--muted)" font-size="11">probe</text>
+  <rect x="262" y="30" width="92" height="66" rx="6" fill="var(--navy)"/>
+  <rect x="270" y="38" width="76" height="26" rx="2" fill="var(--card)"/>
+  <text x="340" y="56" fill="var(--ink)" font-family="var(--f-mono)" font-size="13" text-anchor="end">47.3 °C</text>
+  <text x="308" y="84" fill="var(--card)" font-size="11" text-anchor="middle">every 30 min</text>
+  <text x="308" y="112" fill="var(--ink)" font-weight="600" text-anchor="middle">Data logger</text>
+  <rect x="412" y="40" width="40" height="168" rx="6" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+  <rect x="428" y="54" width="8" height="128" rx="4" fill="var(--paper)" stroke="var(--muted)" stroke-width="1"/>
+  <rect x="430" y="120" width="4" height="62" fill="var(--teal)"/>
+  <circle cx="432" cy="190" r="9" fill="var(--teal)"/>
+  <text x="432" y="226" fill="var(--ink)" font-weight="600" text-anchor="middle">Reference</text>
+  <text x="432" y="240" fill="var(--ink)" font-weight="600" text-anchor="middle">thermometer</text>
+  <text x="404" y="128" fill="var(--muted)" font-size="11" text-anchor="end">reads T<tspan dy="3" font-size="9">room</tspan></text>
+  <text x="404" y="145" fill="var(--muted)" font-size="11" text-anchor="end">and T<tspan dy="3" font-size="9">i</tspan><tspan dy="-3"> as poured</tspan></text>
+  <rect x="226" y="160" width="160" height="40" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.5"/>
+  <text x="306" y="185" fill="var(--teal)" font-size="15" font-weight="700" text-anchor="middle">ΔT = T − T<tspan dy="4" font-size="11">room</tspan></text>
+</svg>`;
+
+/* =====================================================================
+   LAB DEFINITION — the only part that changes from lab to lab.
+   ===================================================================== */
+const DD10 = {                       // generator tuning (see stats_case10.py)
+  dT: 0.5,                           // °C, uncertainty in each probe reading
+  sd: 0.08,                          // °C, sd of the random scatter before rounding to 0.1 °C (truncated at 2 sd)
+  fLo: 0.045, fHi: 0.07,             // cold mug: fraction of ΔT_i lost warming the mug's inner wall and lid in the first minutes
+  failRel: 0.12, failBars: 1.6,      // leaky-lid mugs: fitted t½ at least max(12 %, 1.6 Δt½) below the claim
+  slipLo: 2, slipHi: 3               // °C, the suspect: one units digit copied wrongly from the logger's screen
+};
+const TIMES = {                      // h, readings every 30 min (the logger's t = 0 reading is left out: the probe had only just gone in)
+  7: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
+  8: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+};
+const LN2 = Math.LN2;
+
+const LAB = {
+  number: 10, code: "Case 10", topic: "Cooling Curve", title: "The Hot Drink Claim",
+  storageKey: "pf-dd-lab10",
+  hostedURL: "https://reemassb.github.io/dd-case10-cooling-curve/",   // where the student app lives on GitHub Pages
+  thSpec: 3.0,                       // h, claimed heat-retention half-time (same for every team)
+  quantities: {
+    n:    {sym:"#", name:"Trial number", unit:"", dp:0},
+    th:   {sym:"t", name:"Time on the logger's clock", unit:"h", dp:1},
+    tm:   {sym:"t", name:"Time on the logger's clock", unit:"min", dp:0},
+    T:    {sym:"T", name:"Temperature of the drink", unit:"°C", dp:1},
+    TK:   {sym:"T", name:"Temperature of the drink", unit:"K", dp:2},
+    dT:   {sym:"ΔT", name:"Temperature above the room, ΔT = T − T_room", unit:"°C", dp:1},
+    lndT: {sym:"ln ΔT", label:"ln(ΔT / °C)", name:"ln(ΔT / °C), the natural log of ΔT in °C", unit:"", dp:3}
+  },
+  tracks: {
+    "General":       {raw:["th","T"],  loads:7, process:["dT","lndT"],      uncMode:"guided",  cer:"full"},
+    "Honors":        {raw:["tm","T"],  loads:8, process:["th","dT","lndT"], uncMode:"compute", cer:"partial"},
+    "AP Physics 2":  {raw:["tm","TK"], loads:8, process:["th","dT","lndT"], uncMode:"compute", cer:"partial", kelvin:true},
+    "IB Physics SL": {raw:["tm","TK"], loads:8, process:["th","dT","lndT"], uncMode:"ib",      cer:"minimal", kelvin:true},
+    "IB Physics HL": {raw:["tm","TK"], loads:8, process:["th","dT","lndT"], uncMode:"ib",      cer:"hl", hl:true, kelvin:true}
+  },
+  axes: {y:"lndT", x:"th"},          // ln ΔT against t: gradient = −k
+  plot: {yFalseOrigin: true, yTicks: 8, yAlso: () => (typeof D !== "undefined" && D) ? [D.ref] : []},   // keep ln ΔT_i on the axis        // ln ΔT runs from about 3 to 4: the y-axis starts near the data (engine v2, Case 10)
+  // Each reading is uncertain to ±0.5 °C, so Δ(ln ΔT) = Δ(ΔT) ÷ ΔT = 0.5 × e^(−ln ΔT): a vertical bar that grows as the drink cools.
+  err: {axis:"y", size:0.01, sizeOf: p => DD10.dT * Math.exp(-p.y), slack:0.002, text:"±0.5 °C in T"},
+  readDp: {x:2, y:3},
+  slopeUnit: "h⁻¹", slopeDp: 3,
+  finalSym: "t½", finalName: "Half-time", finalUnit: "h", finalDp: 2,
+  slopeToFinal: null, toFinal: m => -LN2 / m,   // k = −gradient, t½ = ln 2 ÷ k (engine v2 reciprocal support; falls as the line gets steeper)
+  specDp: 1, specWord: "claimed", specLabel: "Claimed half-time t½",
+  specNote: "The claimed half-time is the same for every team. What differs is your team's sample mug and its readings.",
+  verdictQ: "Verdict: within your uncertainty, is your team's mug consistent with the claimed half-time t½ = 3.0 h?",
+  verdictOpts: [["meets","Yes: 3.0 h lies inside our uncertainty range"],["fails","No: 3.0 h lies outside our uncertainty range"]],
+  verdictWords: ["Consistent with 3.0 h","Not consistent with 3.0 h"],
+  interceptUnit: "", interceptSym: "c", interceptName: "Intercept at t = 0",
+  suspectQty: "T",
+  remeasureWord: "checked against the logger", repeatHead: "logger",
+  gradUnits: ["h⁻¹","°C/h","h","°C·h"], gradUnitCorrect: "h⁻¹",
+  convHint: "k = −gradient, then t½ = ln 2 ÷ k",
+  tol: {slopeRel:0.05, meanRes:0.012, icptRel:0.003, icptAbs:0.01, hlIcptRel:0.002, hlIcptAbs:0.005, dcAbs:0.003,
+        x0Rel:0.1, x0Abs:0.03, finalAbs:0.03, dkAbs:0.02, fdkAbs:0.04, pkAbs:0.3},
+
+  briefing(d, S){
+    return `
+      <p>The outdoor-education department is buying insulated travel mugs for its winter field trips, and <strong>Thornbury Outdoor</strong> has sent one sample mug to each lab team. The box says the mug "keeps drinks hot for hours", and Thornbury's spec sheet puts a number on it: a heat-retention half-time of <strong class="mono">t½ = ${d.spec.toFixed(1)} h</strong>. With the lid on, the drink's temperature <em>above the room</em> should halve every ${d.spec.toFixed(0)} hours. Before the school orders sixty mugs, the physics department has been asked to check that claim.</p>
+      <figure style="margin:4px 0 2px;max-width:480px">${KIT_SVG}<figcaption style="font-size:.82rem;color:var(--muted);margin-top:4px">The set-up. The probe reads the drink's temperature T through a small hole in the lid. What cools is the difference ΔT = T − T<sub>room</sub>.</figcaption></figure>
+      <p>The technician filled the mug with hot water from the urn, read the water's temperature T<sub>i</sub> on the reference thermometer as it was poured, closed the lid, pushed the probe in and started the data logger. The logger read the probe every 30 minutes for four hours, in an air-conditioned lab at a steady room temperature.</p>
+      <p class="quote">"The instructions say to warm the mug with hot water for a few minutes before filling it, and I didn't always have time. The logger's screen is small, so I copied its readings into my notebook by hand. I may have got a digit wrong somewhere. I left out the logger's reading at t = 0: the probe had only just gone in." — Lab technician's note</p>
+      <p>Your job: find the mug's half-time from the evidence, decide whether it is consistent with the spec sheet, and file a report the department can trust.</p>`;
+  },
+  briefingCheck: {
+    q: "Before you open the evidence: a drink in a mug is 40 °C warmer than the room, and the mug's half-time is 3 hours. How much warmer than the room is the drink after 3 hours, and after 6 hours?",
+    options: [
+      ["a","20 °C, then 10 °C: every 3 hours the difference halves again"],
+      ["b","20 °C, then 0 °C: it loses the same 20 °C every 3 hours"],
+      ["c","The drink's temperature in °C halves every 3 hours, whatever the room temperature"],
+      ["d","20 °C after 3 hours, and it stays there"]],
+    correct:"a",
+    why:"A drink cools faster when it is much warmer than the room, and more and more slowly as it gets close to room temperature. So the difference ΔT = T − T<sub>room</sub> falls by the same <em>fraction</em> in each equal time: it halves every half-time (40 → 20 → 10 °C) and never quite reaches zero. This is Newton's law of cooling, ΔT = ΔT<sub>i</sub>·e<sup>−kt</sup>.",
+    nudge:"Not quite. Think about the temperature difference, not the temperature, and remember that a drink close to room temperature cools very slowly."
+  },
+
+  /* Build one team's dataset. R = seeded random generator. */
+  generate(R, track, S){
+    const T = this.tracks[track], n = T.loads, spec = this.thSpec, ts = TIMES[n];
+    const Troom = rnd(R.uni(21.0, 25.0), 1), Ti = rnd(R.uni(66.0, 71.0), 1), dTi = rnd(Ti - Troom, 1);   // °C, reference thermometer
+    const off = R.next() >= 0.4;                                                    // the mug was not warmed first
+    const f = off ? R.uni(DD10.fLo, DD10.fHi) : R.uni(0, 0.002);                    // fraction of ΔT_i soaked up by the cold inner wall and lid
+    const match = R.next() < 0.5, far = R.uni(1, 1.5), aim = R.uni(-0.25, 0.25);
+    const sIdx = R.int(2, n - 3), pick = R.next();                                  // suspect: one reading copied wrongly (trial 3 … n − 2)
+    const clip = (v, s) => Math.max(-2 * s, Math.min(2 * s, v));
+    const noise = () => clip(DD10.sd * R.gauss(), DD10.sd);                         // °C
+    const mk = (t, Tc) => { const dT = rnd(Tc - Troom, 1); return {th:t, tm:Math.round(t * 60), T:Tc, TK:rnd(Tc + 273.15, 2), dT, lndT:Math.log(dT)}; };
+    const build = (k, nz) => {                                                      // Newton's law after the start: ΔT = ΔT_i (1 − f) e^(−kt), read to 0.1 °C
+      const rows = ts.map((t, i) => ({n:i + 1, ...mk(t, rnd(Troom + dTi * (1 - f) * Math.exp(-k * t) + nz[i], 1))}));
+      const pts = rows.map(q => ({x:q.th, y:q.lndT}));
+      const fit = lsq(pts), ex = extremeSlopes(pts);
+      return {rows, k, th:-LN2 / fit.m, dth:Math.abs(LN2 / ex.max - LN2 / ex.min) / 2};
+    };
+    let nz = ts.map(noise), tries = 0;
+    let B = build(LN2 / spec, nz);
+    const aimAt = target => { for (let j = 0; j < 4; j++) B = build(B.k * B.th / target, nz); };   // t½ ∝ 1/k
+    if (match){                        // a good mug: the fit lands within ±0.3 Δt½ of the claim
+      aimAt(spec + aim * B.dth);
+      while (Math.abs(B.th - spec) > 0.3 * B.dth && tries < 60){ nz = ts.map(noise); aimAt(spec + aim * B.dth); tries++; }
+    } else {                           // a mug whose lid seal leaks: always cools FASTER, so t½ is short
+      const target = () => spec - Math.max(DD10.failRel * spec, DD10.failBars * B.dth) * far;
+      aimAt(target());
+      for (let j = 0; j < 80 && B.th > target(); j++) B = build(B.k * 1.004, nz);   // T is read to 0.1 °C, so step until the fit clears the target
+    }
+    const rows = B.rows, s = rows[sIdx], re = {...s};                             // re = the logger's stored reading
+    const prev = rows[sIdx - 1].T, next = rows[sIdx + 1].T;
+    const fo = lsq(rows.filter((_, i) => i !== sIdx).map(q => ({x:q.th, y:q.lndT}))), sg = s.lndT >= fo.m * s.th + fo.b ? 1 : -1;   // slip the way the reading already leans
+    const order = pick < 0.5 ? [[sg, DD10.slipHi], [sg, DD10.slipLo], [-sg, DD10.slipHi], [-sg, DD10.slipLo]] : [[sg, DD10.slipLo], [sg, DD10.slipHi], [-sg, DD10.slipLo], [-sg, DD10.slipHi]];
+    const ok = ([g, mag]) => { const v = s.T + g * mag; return v < prev - 0.3 && v > next + 0.3; };          // stays between its neighbours
+    const pickd = order.find(ok) || [sg, DD10.slipLo], slip = pickd[0] * pickd[1];
+    Object.assign(s, mk(s.th, rnd(s.T + slip, 1)));
+    const pcRow = sIdx === 2 ? 1 : 2;
+    return {k:B.k, thTrue:LN2 / B.k, f, off, late:off, Troom, Ti, dTi, ref:Math.log(dTi), tries, rows, suspect:sIdx, recorded:s.T, remeasure:re.T, re, spec, match, pcRow, slip, kelvin:!!T.kelvin};
+  },
+  remeasureRow(o, d){ Object.assign(o, d.re); },
+  tableCols(track, showProc){
+    const raw = this.tracks[track].raw;
+    return showProc ? ["n", ...raw, ...this.tracks[track].process] : ["n", ...raw];
+  },
+  rawNote(d, track){
+    const T = this.tracks[track];
+    const time = T.raw[0] === "th" ? "t is the time on the logger's clock, in hours." : "t is the time on the logger's clock, in minutes.";
+    const temp = T.kelvin ? "T is the drink's temperature, copied from the logger, which was set to show kelvin." : "T is the drink's temperature, copied from the logger.";
+    return `${time} ${temp} The reference thermometer (±0.1 °C) read the room at <b class="mono">T<sub>room</sub> = ${fx(d.Troom, 1)} °C</b> and the water as it was poured at <b class="mono">T<sub>i</sub> = ${fx(d.Ti, 1)} °C</b>, so at pouring ΔT<sub>i</sub> = ${fx(d.dTi, 1)} °C and ln(ΔT<sub>i</sub> / °C) = ${d.ref.toFixed(3)}. Each probe reading is uncertain to ±${DD10.dT} °C.`;
+  },
+  pcDesc(r, track){
+    const T = LAB.tracks[track];
+    return T.raw[0] === "th" ? `trial ${r.n} (t = ${r.th.toFixed(1)} h, T = ${r.T.toFixed(1)} °C)` : T.kelvin ? `trial ${r.n} (t = ${r.tm} min, T = ${r.TK.toFixed(2)} K)` : `trial ${r.n} (t = ${r.tm} min, T = ${r.T.toFixed(1)} °C)`;
+  },
+  processing: {
+    th: {label:"t in hours", unit:"h",
+        how:() => "60 min = 1 h, so divide the time in minutes by 60.",
+        value:(r) => r.th, tol:0.005, abs:0.005,
+        fail:(v, r) => near(v, r.tm * 60, 0.01) ? "That's bigger, not smaller. Divide by 60 to go from minutes to hours."
+          : near(v, r.tm / 100, 0.01) ? "An hour has 60 minutes, not 100. Divide by 60."
+          : near(v, r.tm, 0.01) ? "That's still in minutes. Divide by 60."
+          : "Check: t (h) = t (min) ÷ 60."},
+    dT: {label:"ΔT = T − T<sub>room</sub>", unit:"°C",
+        how:(r, S, d, track) => LAB.tracks[track].kelvin
+          ? `The logger shows kelvin, the room was read in °C. Convert one to match the other (T in °C = T in K − 273.15), then subtract: ΔT = T − T<sub>room</sub> with T<sub>room</sub> = ${fx(d.Troom, 1)} °C. A temperature difference is the same number in K and in °C.`
+          : `Subtract the room temperature from the drink's temperature: ΔT = T − T<sub>room</sub>, with T<sub>room</sub> = ${fx(d.Troom, 1)} °C.`,
+        value:(r) => r.dT, tol:0.003, abs:0.16,
+        fail:(v, r, S, d, track) => near(v, r.TK - d.Troom, 0.003, 0.16) ? "You subtracted a Celsius room temperature from a kelvin reading. Put both in the same unit first (T in °C = T in K − 273.15)."
+          : near(v, r.T, 0.003, 0.16) || near(v, r.TK, 0.003, 0.16) ? "That's the drink's temperature itself. Subtract the room temperature."
+          : near(v, -r.dT, 0.003, 0.16) ? "Subtract the other way round: ΔT = T − T<sub>room</sub>, so it is positive while the drink is warmer than the room."
+          : near(v, r.T + d.Troom, 0.003, 0.16) ? "Subtract the room temperature, don't add it."
+          : `Check: ΔT = T − T<sub>room</sub>, with T<sub>room</sub> = ${fx(d.Troom, 1)} °C.`},
+    lndT: {label:"ln(ΔT / °C)", unit:"",
+        how:(r, S, d, track) => track === "General"
+          ? "Use the <b>ln</b> key (natural log), not <b>log</b>: press ln, then type your ΔT in °C. For example, ln(40.0) = 3.689."
+          : "Take the natural log of ΔT in °C: ln(ΔT). Not log, which is base 10.",
+        value:(r) => r.lndT, tol:0.002, abs:0.006,
+        fail:(v, r, S, d, track) => near(v, Math.log10(r.dT), 0.002, 0.006) ? "That's log (base 10). Use ln, the natural log (base e): ln(40.0) = 3.689, but log(40.0) = 1.602."
+          : near(v, Math.log(r.T), 0.002, 0.006) ? "That's ln T. Subtract the room temperature first, then take the ln of ΔT."
+          : near(v, Math.log(r.TK), 0.002, 0.006) || near(v, Math.log(r.TK - d.Troom), 0.002, 0.006) ? "That's the ln of a temperature in kelvin, not of ΔT. Find ΔT = T − T<sub>room</sub> first (in °C or K, the same number), then take its ln."
+          : near(v, r.dT, 0.002, 0.06) ? "That's ΔT itself. Now take its natural log: ln(ΔT)."
+          : "Check: ln(ΔT), the natural log, with ΔT in °C."}
+  },
+  variableChecks: [
+    {id:"iv", q:"Which quantity did the logger step through at set intervals (independent variable)?",
+     options:[["a","The time since the logger started"],["b","The temperature of the drink"],["c","The room temperature"],["d","The mug's half-time"]], correct:"a",
+     why:"The logger took a reading every 30 minutes, so time is the independent variable. The drink's temperature is what changed in response."},
+    {id:"cv", q:"Which variables had to be kept the same for the test to be fair?",
+     options:[["a","The same mug with its lid closed, the same amount of water, the probe in the same place, and a steady room temperature"],["b","The time between readings"],["c","The temperature of the drink"],["d","The temperature difference ΔT"]], correct:"a",
+     why:"Same mug, lid closed, same amount of water, same probe position, steady room. If the room warmed up during the test, or the lid was opened, the readings would not follow one cooling curve."}
+  ],
+  axisAvail(track){ return ["n", ...this.tracks[track].raw, ...this.tracks[track].process]; },
+  axesLede: "A good detective plots the graph whose gradient answers the question. A cooling curve is not a straight line, so which graph turns it into one whose gradient gives the half-time?",
+  axesStarter: `Newton's law of cooling says the temperature difference falls exponentially: <b class="mono">ΔT = ΔT<sub>i</sub>·e<sup>−kt</sup></b>, where ΔT = T − T<sub>room</sub> and k is the cooling constant. Take the natural log (ln) of both sides. ln undoes e, so <b class="mono">ln ΔT = ln ΔT<sub>i</sub> − k·t</b>. Compare it with a straight line, <b class="mono">y = (gradient)·x + c</b>.<br><b>New to ln?</b> It is the natural logarithm: the <b>ln</b> key on your calculator, not <b>log</b>. It turns multiplying into adding, so a ΔT that halves every 3 hours becomes an ln ΔT that drops by the same amount, ln 2 ≈ 0.693, every 3 hours: a straight line. You can only take the ln of a number, so we plot ln(ΔT / °C): the number of degrees, without its unit.`,
+  axesOK: "Matching ln ΔT = ln ΔT<sub>i</sub> − k·t with y = (gradient)·x + c: y is ln ΔT, x is t, so the gradient is −k. It is negative, because the line slopes down, and k = −gradient. The intercept c is the ln ΔT your line predicts at t = 0. If the drink cooled by Newton's law from the moment it was poured, c = ln ΔT<sub>i</sub>. The half-time follows from k: ΔT has halved when kt = ln 2, so t½ = ln 2 ÷ k.",
+  axisFeedback(y, x, track){
+    const Y = LAB.axes.y, X = LAB.axes.x;
+    if (y === x) return "Pick two different quantities.";
+    if (y === Y && x === X) return null;
+    if (y === "n" || x === "n") return "Trial number is only a label. It isn't a physical quantity, so its gradient has no meaning.";
+    if ((y === "th" || y === "tm") && x === "lndT") return "That graph is straight too, but its gradient is −1/k. This case puts ln ΔT on the vertical axis so that k = −gradient. Swap them.";
+    if (y === "lndT" && x === "tm") return "Right idea. Use the time in hours, so the gradient comes out in h⁻¹ and the half-time in hours.";
+    if (["T","TK"].includes(y) && ["th","tm"].includes(x)) return "That is the cooling curve itself. It curves, falling fast at first and more slowly later, and it levels off at room temperature, not at zero. Use ΔT = T − T<sub>room</sub>, then take its natural log to straighten the curve.";
+    if (y === "dT" && ["th","tm"].includes(x)) return "ΔT against t curves: ΔT falls fast while the drink is much warmer than the room and more slowly later (exponential decay). Take the natural log of ΔT to turn the curve into a straight line.";
+    if (["th","tm"].includes(y) || ["th","tm"].includes(x)) return "Newton's law says ln ΔT falls steadily with time. Which quantity goes on the vertical axis?";
+    return "Think about ln ΔT = ln ΔT<sub>i</sub> − k·t. Which graph is a straight line with −k as its gradient?";
+  },
+  graphLede: `Each point has a vertical error bar. Each probe reading is uncertain to ±${DD10.dT} °C, so ΔT is too (the reference thermometer's T<sub>room</sub> is far more precise). On a log graph, Δ(ln ΔT) = Δ(ΔT) ÷ ΔT: the <em>fractional</em> uncertainty in ΔT. So the bars grow as the drink cools and ΔT gets smaller. The logger's clock is good to about a second, which changes ln ΔT by less than 0.0001, so horizontal error bars are left out. The vertical axis starts near the data, not at zero (a false origin): read the numbers on it.`,
+  graphCheck: {
+    q:"Look at your plotted points. What pattern do they show?",
+    options:[["a","A straight-line trend sloping down: ln ΔT falls steadily as t increases"],["b","A curve that falls steeply at first, then levels off"],["c","No clear pattern"],["d","ln ΔT increases as t increases"]], correct:"a",
+    why:"A straight line on an ln ΔT–t graph means ΔT falls by the same fraction in every equal time: exponential decay, as Newton's law of cooling predicts. One point may not sit on the line. That is your next job.",
+    nudge:"Look again. Ignore one odd point: what do the rest do?"
+  },
+  anomalyReason: {
+    q:"Why is this reading suspicious?",
+    options:[["a","It sits far from the trend, further than its error bar can explain"],["b","It is the lowest reading in the table"],["c","It has the biggest error bar"],["d","It is the first reading after the logger started"]], correct:"a",
+    why:"It sits off the line the other readings make, by several error bars. Random probe scatter can't explain that, but a copying slip can: the technician copied each reading from the logger's small screen by hand, and a wrong units digit moves a reading by a few degrees. On its own the reading looks reasonable, because it still lies between the readings before and after it. Only the trend on the graph shows that it is wrong."
+  },
+  anomalyActions: [["remeasure","Check that reading against the logger's memory"],["exclude","Leave it out of the line fit, and record why"]],
+  remeasureMsg(d){ const r = d.rows[d.suspect]; return `The technician scrolled back through the logger's memory to the reading at t = ${fx(r.th, 1)} h: T = <b class="mono">${fx(d.remeasure, 1)} °C</b>${d.kelvin ? ` (${fx(d.re.TK, 2)} K)` : ""}, not ${fx(d.recorded, 1)} °C. One digit had been copied wrongly. The logger's value replaces the copied one in your data.`; },
+  excludeMsg(d){ return `Trial ${d.suspect + 1} (T = ${fx(d.recorded, 1)} °C) is now excluded from the fit. It stays in the table, crossed out, so anyone reading your report can see what you removed.`; },
+  recordedNote(d){ return `Highlighted row: checked against the logger's memory (copied as T = ${fx(d.recorded, 1)} °C).`; },
+  gradientMeaning: {
+    q:"What does the gradient of your ln ΔT–t graph represent?",
+    options:[["a","−k: minus the cooling constant, so k = −gradient"],["b","The half-time t½ itself"],["c","How fast the drink cools, in °C per hour"],["d","ln ΔT_i, the temperature difference at pouring"]], correct:"a",
+    why:"From ln ΔT = ln ΔT<sub>i</sub> − kt, the gradient Δ(ln ΔT) ÷ Δt is −k. ln ΔT has no unit, so the gradient is in h⁻¹. Then k = −gradient and t½ = ln 2 ÷ k."
+  },
+  finalField: {label:"Half-time t½", hint:"k = −gradient, then t½ = ln 2 ÷ k (ln 2 ≈ 0.693)"},
+  convFail(k, slope){
+    if (near(k, LN2 / slope, 0.03)) return "t½: your half-time is negative. The gradient is −k, so k = −gradient is positive. Then t½ = ln 2 ÷ k.";
+    if (near(k, -slope, 0.03)) return "t½: that's k, the cooling constant (in h⁻¹). The half-time is t½ = ln 2 ÷ k.";
+    if (near(k, -1 / slope, 0.03)) return "t½: that's 1 ÷ k, the time constant. The half-time is t½ = ln 2 ÷ k, about 0.693 ÷ k.";
+    if (near(k, -Math.log10(2) / slope, 0.03)) return "t½: you used log 2 (0.301). Use the natural log: ln 2 ≈ 0.693.";
+    if (near(k, -0.5 / slope, 0.03)) return "t½: ΔT has halved when kt = ln 2, not 0.5. So t½ = ln 2 ÷ k.";
+    if (near(k, -60 * LN2 / slope, 0.03)) return "t½: that's in minutes. The gradient is in h⁻¹, so t½ = ln 2 ÷ k is already in hours.";
+    if (near(k, -LN2 * slope, 0.03)) return "t½: divide, don't multiply: t½ = ln 2 ÷ k.";
+    return "t½: first k = −gradient (positive, in h⁻¹), then t½ = ln 2 ÷ k.";
+  },
+  icptLabel: "Where your line crosses the ln ΔT-axis (t = 0): c",
+  get icptHint(){ return `Read it from the graph or calculate it: c = y₁ − gradient·x₁. It has no unit.${typeof D !== "undefined" && D ? ` Compare it with the value at pouring, ln ΔT<sub>i</sub> = ${D.ref.toFixed(3)} (in the evidence log).` : ""}`; },
+  interceptOptions: [
+    ["origin","c agrees with ln ΔT_i (the value at pouring) within the error bars: no evidence that the drink lost heat faster at the start than Newton's law predicts."],
+    ["zero","c is lower than ln ΔT_i by more than the error bars allow: the drink seems to have lost some extra heat before its steady cooling began. Possible causes include a mug that was not warmed first (its cold inner wall and lid soak up heat from the drink in the first few minutes) or a logger started some time after pouring. Further checks are needed to tell which."],
+    ["random","The intercept is caused by random error in individual readings."],
+    ["k","The intercept is the cooling constant k."]
+  ],
+  interceptKey(fit, d){ // compares c with ln ΔT_i
+    const gap = d.ref - fit.b;
+    if (Math.abs(gap) < 0.02) return ["origin"];
+    if (gap > 0.03) return ["zero"];
+    return ["origin","zero"];
+  },
+  interceptFail: {
+    k:"Intercept meaning: k comes from the gradient, not the intercept.",
+    zero:"Intercept meaning: look again. Compare c with ln ΔT_i. Is c lower by more than the error bars near t = 0 allow?",
+    origin:"Intercept meaning: check whether the gap between c and ln ΔT_i is bigger than the error bars. A small gap may still be consistent with no extra heat loss."
+  },
+  pctQ: {label:"Which trial has the largest <em>percentage</em> uncertainty in ΔT?", hint:"Δ(ΔT) is the same ±0.5 °C for every reading. Which ΔT does that hurt most? (The error bar on your graph, Δ(ln ΔT) = Δ(ΔT) ÷ ΔT, is exactly this fraction.)",
+         fail:"Largest % uncertainty: the same ±0.5 °C is the biggest fraction of the smallest ΔT, the last reading, when the drink is closest to room temperature."},
+  hl: {
+    intro:`Your steepest and shallowest lines cross the ln ΔT-axis at different places. That spread is the uncertainty in your intercept c. Find each intercept with <b class="mono">c = y₁ − gradient·x₁</b> using the line's handle coordinates and its gradient. Then compare c ± Δc with ln ΔT<sub>i</sub>, the value at pouring. Keep the model's assumptions in mind: your line assumes Newton's law with one constant k, and the right room temperature. If T<sub>room</sub> had been recorded too high by e, every plotted value would be ln(ΔT − e) instead of ln ΔT: a small drop while ΔT is large, a bigger one late in the test when ΔT is small. Over four hours the points still look straight (the bend is under a third of an error bar for e = 2 °C), but the line comes out steeper, so t½ is about 4 % too short for every degree of error, and c is about 0.02 lower per degree. So a gap between c and ln ΔT<sub>i</sub> alone does not prove extra heat loss at the start.`,
+    ref: d => d.ref, refWord: "ln ΔT_i", refSym: "ln ΔT_i",
+    refQ: d => `Does your range c ± Δc include ln ΔT<sub>i</sub> = ${d.ref.toFixed(3)}?`,
+    refShow: d => `ln ΔT_i (${d.ref.toFixed(3)})`,
+    refHead: "ln ΔT<sub>i</sub> in c ± Δc?",
+    x0Label:"Time t₀ at which your line reaches ln ΔT_i", x0Short:"t₀", x0Unit:"h", x0Dp:2,
+    x0Hint:"Solve ln ΔT<sub>i</sub> = gradient·t₀ + c: t₀ = (ln ΔT<sub>i</sub> − c) ÷ gradient. t₀ = 0 if the drink cooled by Newton's law from the moment it was poured. A negative t₀ means the drink is cooler than the law predicts, as if it had already been cooling for |t₀| when the logger started.",
+    x0Fail:"HL · t₀ is where your line reaches ln ΔT_i: t₀ = (ln ΔT_i − c) ÷ gradient. Remember that the gradient is negative.",
+    inside:"ln ΔT_i lies inside c ± Δc: no evidence that the drink lost extra heat at the start.",
+    outside:x0 => `ln ΔT<sub>i</sub> lies outside c ± Δc: the drink seems to have lost some extra heat before its steady cooling began. Extrapolating, your line reaches the pouring value at t₀ ≈ ${fx(x0, 2)} h, so the drink behaves as if it had already been cooling for about ${Number.isFinite(x0) ? Math.round(Math.abs(x0) * 60) : "—"} minutes when the logger started. Two causes fit: a logger started about that late, or a cold mug whose inner wall and lid soaked up heat in the first few minutes, so the steady cooling started from a smaller ΔT. Warming the mug first, or starting the logger before pouring and reading every few seconds at the start, would tell them apart. Either way the extra loss happens once, at the start, so it shifts the line down but leaves its gradient, and t½, unchanged. A room temperature recorded too high would also lower c, but it would make t½ too short as well, so checking T<sub>room</sub> matters before blaming the mug.`
+  },
+  cerStarters: {
+    full: {
+      claim:"Our mug [is / is not] consistent with the claimed half-time of 3.0 h. Our result is t½ = ___ ± ___ h.",
+      evidence:"Our ln ΔT–t graph is a ___ line. Its gradient is ___ h⁻¹, so k = ___ h⁻¹ and t½ = ln 2 ÷ k = ___ h. Trial ___ was an anomaly because ___, so we ___ it.",
+      reasoning:"Newton's law of cooling says ΔT = ΔT_i·e^(−kt), so ln ΔT = ln ΔT_i − kt and the gradient of ln ΔT against t is −k. The claimed 3.0 h lies [inside / outside] our range of ___ to ___ h, so ___. Before ordering, the department should check ___."
+    },
+    partial: {
+      claim:"State whether your mug is consistent with the claimed half-time, and give t½ with its uncertainty and unit.",
+      evidence:"Quote your gradient, how you got k and t½ from it, how you handled the anomaly, and how your intercept c compares with ln ΔT_i.",
+      reasoning:"Connect the gradient to Newton's law of cooling, compare the claim with your uncertainty range, and say what the department should check before ordering."
+    },
+    minimal: {
+      claim:"Verdict + final value of t½ with absolute uncertainty.",
+      evidence:"Gradient, max/min gradients, % uncertainty, treatment of the outlier, intercept compared with ln ΔT_i.",
+      reasoning:"Justify why k = −gradient and t½ = ln 2 ÷ k, and whether the claim is consistent with your result within uncertainty. Comment on what the intercept says about the start of the test, and what the department should check before ordering."
+    },
+    hl: {
+      claim:"Verdict + final value of t½ with absolute uncertainty.",
+      evidence:"Gradient, max/min gradients, % uncertainty, treatment of the outlier, intercept c ± Δc compared with ln ΔT_i, and t₀.",
+      reasoning:"Justify why k = −gradient and t½ = ln 2 ÷ k, and whether the claim is consistent with your result within uncertainty. Use c ± Δc to decide whether the drink lost extra heat at the start, describe a check that would tell a cold mug from a late logger start, explain why a one-off loss at the start leaves t½ unchanged while a wrong room temperature would not, and say what the department should check before ordering."
+    }
+  },
+  cerChecks(text, part){
+    const t = text.toLowerCase();
+    if (part === "claim") return [
+      ["Gives a verdict (consistent / not consistent)", /(does not|doesn't|fails|meets|matches|within|outside|passes|accept|reject|agree|consistent)/.test(t)],
+      ["States t½ with the unit h", /\d\s*(h\b|hours?|hr)/.test(t)],
+      ["Includes an uncertainty (±)", /±|\+\/-|\+-|uncertain/.test(t)]];
+    if (part === "evidence") return [
+      ["Quotes the gradient", /(gradient|slope)/.test(t)],
+      ["Explains the anomaly", /(anomal|outlier|suspect|trial|copied|copy|digit|logger|memory|exclud)/.test(t)],
+      ["Uses numbers from the graph", /\d/.test(t)]];
+    return [
+      ["Links the gradient to Newton's law of cooling", /(newton|exponential|ln\s*δ?t|ln 2|0\.69|e\^|e\s*−|half)/.test(t)],
+      ["Compares the claim with your range", /(range|uncertaint|within|outside|between)/.test(t)],
+      ["Explains why that leads to the verdict", /(so |therefore|because|thus|this means)/.test(t)]];
+  },
+
+  
+};
+/* ===================================================================== */
+
+/* =====================================================================
+   ENGINE v2 — shared by every Data Detective case from Case 02 on. (Case 08: unit-optional text; Case 09: largest-% by bar ÷ value;
+   Case 10: negative gradients, HL reference value, false-origin y-axis)
+   Everything lab-specific lives in SETUP and LAB above.
+   ===================================================================== */
+
+/* ---------- small helpers ---------- */
+function rnd(v, dp){ const p = Math.pow(10, dp); const r = Math.round(v * p) / p; return Object.is(r, -0) ? 0 : r; }
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function num(s){ if (s == null) return NaN; const t = String(s).trim().replace(/\s+/g, "").replace(",", ".").replace(/[−–]/g, "-"); if (t === "" || t === "-") return NaN; const v = Number(t); return Number.isFinite(v) ? v : NaN; }
+const near = (v, t, rel, abs = 0) => Number.isFinite(v) && Math.abs(v - t) <= Math.max(Math.abs(t) * rel, abs);
+const fx = (v, dp) => (Number.isFinite(v) ? rnd(v, dp).toFixed(dp) : "—");
+const framed = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
+function store(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+function load(k){ try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch(e){ return null; } }
+const Q = k => LAB.quantities[k];
+const qAxis = k => Q(k).axisUnit || Q(k).unit;
+const FU = () => LAB.finalUnit, FS = () => LAB.finalSym;
+const fFinal = v => fx(v, LAB.finalDp);
+/* Unit-optional text (Case 08: n, sin i, sin r and c have no unit). Output is unchanged when a unit exists. */
+const withU = (v, u) => u ? `${v} ${u}` : `${v}`;
+const parU = u => u ? ` (${u})` : "";
+const axLbl = k => qAxis(k) ? `${Q(k).sym} / ${qAxis(k)}` : Q(k).sym;
+const gradTo = () => LAB.slopeUnit ? ` in ${LAB.slopeUnit}, then convert to ${FU()} (${LAB.convHint})` : ` (${LAB.convHint})`;
+/* Gradient → final value. Default: gradient × LAB.slopeToFinal. A case can define LAB.toFinal(m) instead
+   (Case 07: g = 4π² ÷ gradient). When the final value falls as the gradient rises, the steepest line gives the SMALLEST value. */
+const toFinal = m => LAB.toFinal ? LAB.toFinal(m) : m * LAB.slopeToFinal;
+/* s = sign of the gradient (Case 10: cooling curves fall). "Steeper" always means a larger |gradient|, so the test compares
+   gradients of the same sign: toFinal(2s) vs toFinal(s). For s = 1 this is the original test. */
+const finalFalls = (s = 1) => toFinal(2 * s) < toFinal(s);
+/* Case 10 hooks, all optional (defaults = Cases 02–09 behaviour):
+   Q(k).label   axis label and table header when it should differ from "sym / unit" (Case 10: ln(ΔT / °C), sym ln ΔT)
+   LAB.hl.ref(d) the value the HL test compares c with (default 0), so x₀ = (ref − c) ÷ gradient is where the line reaches it
+   LAB.plot.yFalseOrigin  y-axis fitted to the data instead of starting one step below zero */
+const qLbl = k => Q(k).label || axLbl(k);
+const hlRef = d => (LAB.hl && LAB.hl.ref) ? LAB.hl.ref(d) : 0;
+const refWord = () => (LAB.hl && LAB.hl.refWord) || "zero";
+
+/* ---------- seeded random ---------- */
+function hashSeed(str){ let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return (h ^= h >>> 16) >>> 0; }
+function makeRng(seedStr){
+  let a = hashSeed(seedStr);
+  const next = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  return { next, uni:(lo, hi) => lo + (hi - lo) * next(), int:(lo, hi) => Math.floor(lo + (hi - lo + 1) * next()),
+    gauss:() => { let u = 0, v = 0; while (u === 0) u = next(); while (v === 0) v = next(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); } };
+}
+function teamData(classCode, team, track){
+  const R = makeRng(`${LAB.storageKey}|${String(classCode).trim().toUpperCase()}|${team}|${track}`);
+  return LAB.generate(R, track, SETUP);
+}
+
+/* ---------- fitting ---------- */
+function lsq(pts){
+  const n = pts.length; let sx = 0, sy = 0, sxx = 0, sxy = 0;
+  pts.forEach(p => { sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; });
+  const m = (n * sxy - sx * sy) / (n * sxx - sx * sx); return {m, b:(sy - m * sx) / n};
+}
+const lineOf = L => { const m = (L.b.y - L.a.y) / (L.b.x - L.a.x); return {m, b:L.a.y - m * L.a.x}; };
+function cleanRows(d, an){
+  return d.rows.map((r, i) => {
+    const o = {...r, flag:false, excl:false};
+    if (i === d.suspect && an && an.action){
+      if (an.action === "remeasure"){ LAB.remeasureRow(o, d); o.flag = true; }
+      if (an.action === "exclude"){ o.excl = true; }
+    }
+    return o;
+  });
+}
+const plotPts = rows => rows.map(r => ({x:r[LAB.axes.x], y:r[LAB.axes.y], excl:r.excl, i:r.n - 1}));
+/* Error bars sit on one axis (LAB.err.axis). Size is LAB.err.size, or LAB.err.sizeOf(p) per point when a case defines it (Case 06). */
+const errOf = p => LAB.err.sizeOf ? LAB.err.sizeOf(p) : LAB.err.size;
+/* For a line y = m·x + b to pass through a bar, b must lie in [lo, hi]. */
+function bRange(p, m){
+  const e = errOf(p);
+  return LAB.err.axis === "x" ? [p.y - m * (p.x + e), p.y - m * (p.x - e)] : [p.y - e - m * p.x, p.y + e - m * p.x];
+}
+function extremeSlopes(pts){ // steepest / shallowest lines that pass through every error bar
+  const P = pts.filter(p => !p.excl), f = lsq(P);
+  const lo = m => Math.max(...P.map(p => bRange(p, m)[0])), hi = m => Math.min(...P.map(p => bRange(p, m)[1]));
+  const fits = m => lo(m) <= hi(m) + 1e-9, bAt = m => (lo(m) + hi(m)) / 2;
+  let seed = null; for (let k = 0; k <= 400 && seed === null; k++){ const m = f.m * (0.5 + 1.1 * k / 400); if (fits(m)) seed = m; }
+  if (seed === null) return {max:f.m, min:f.m, maxB:f.b, minB:f.b};
+  const ext = (a, b) => { for (let i = 0; i < 60; i++){ const mid = (a + b) / 2; if (fits(mid)) a = mid; else b = mid; } return a; };
+  const max = ext(seed, f.m * 2), min = ext(seed, 0);
+  return {max, min, maxB:bAt(max), minB:bAt(min)};
+}
+/* Largest percentage uncertainty: the point whose error bar is the biggest fraction of its own value (Case 09: bars on 1/d²
+   grow faster than the values, so the LARGEST value wins). For constant bars, or bars that shrink relative to the value
+   (Cases 02–08), this is the same point as the smallest |value|. */
+function pctRow(rs){
+  const rel = r => { const p = {x:r[LAB.axes.x], y:r[LAB.axes.y]}; return errOf(p) / Math.abs(p[LAB.err.axis]); };
+  return rs.filter(r => !r.excl).sort((p, q) => rel(q) - rel(p))[0];
+}
+function missedBars(L, pts){
+  const {m, b} = lineOf(L); const miss = [];
+  pts.forEach(p => { if (p.excl) return; const e = errOf(p) + LAB.err.slack;
+    const off = LAB.err.axis === "x" ? Math.abs((p.y - b) / m - p.x) : Math.abs(m * p.x + b - p.y);
+    if (off > e) miss.push(p.i + 1); });
+  return miss;
+}
+
+
+/* =====================================================================
+   PLOT
+   ===================================================================== */
+class Plot {
+  constructor(box, opts = {}){
+    this.box = box; this.c = document.createElement("canvas"); box.appendChild(this.c);
+    this.ctx = this.c.getContext("2d"); this.pts = []; this.lines = []; this.opts = opts;
+    this.pick = null; this.drag = null; this.onChange = null; this.onPick = null; this.tag = null;
+    this.ro = new ResizeObserver(() => this.resize()); this.ro.observe(box);
+    this.c.addEventListener("pointerdown", e => this.down(e));
+    this.c.addEventListener("pointermove", e => this.move(e));
+    ["pointerup","pointercancel","pointerleave"].forEach(t => this.c.addEventListener(t, () => { this.drag = null; }));
+    this.c.setAttribute("role","img"); this.resize();
+  }
+  setPoints(pts){
+    this.pts = pts;
+    const ex = p => LAB.err.axis === "x" ? errOf(p) : 0, ey = p => LAB.err.axis === "y" ? errOf(p) : 0;
+    const xs = pts.map(p => p.x + ex(p)), ys = pts.map(p => p.y + ey(p));
+    this.xStep = niceStep(Math.max(...xs) / 6); this.yStep = niceStep(Math.max(...ys) / 6);
+    this.xMin = 0; this.xMax = Math.ceil(Math.max(...xs) * 1.06 / this.xStep) * this.xStep;
+    this.yMin = -this.yStep; this.yMax = Math.ceil(Math.max(...ys) * 1.08 / this.yStep) * this.yStep;
+    if (LAB.plot && LAB.plot.yFalseOrigin){   // Case 10: fit the y-axis to the error bars and to where the best and limiting lines cross x = 0
+      let lo = Math.min(...pts.map(p => p.y - ey(p))), hi = Math.max(...ys);
+      const P = pts.filter(p => !p.excl);
+      if (P.length >= 2){ const f = lsq(P), e = extremeSlopes(pts);
+        [f.b, e.maxB, e.minB].forEach(b => { if (Number.isFinite(b)){ lo = Math.min(lo, b); hi = Math.max(hi, b); } }); }
+      (LAB.plot.yAlso ? LAB.plot.yAlso() : []).forEach(v => { if (Number.isFinite(v)){ lo = Math.min(lo, v); hi = Math.max(hi, v); } });   // e.g. a value the intercept is compared with
+      const span = Math.max(hi - lo, 1e-9), pad = LAB.plot.yPad ?? 0.03; this.yStep = niceStep(span / (LAB.plot.yTicks || 6));
+      this.yMin = Math.floor((lo - pad * span) / this.yStep) * this.yStep; this.yMax = Math.ceil((hi + pad * span) / this.yStep) * this.yStep;
+    }
+    this.c.setAttribute("aria-label", `Graph of ${Q(LAB.axes.y).name} against ${Q(LAB.axes.x).name} with ${pts.length} points`);
+    this.draw();
+  }
+  resize(){
+    const w = this.box.clientWidth; if (!w) return;
+    const h = Math.round(Math.min(Math.max(w * 0.62, 260), 470));
+    const dpr = window.devicePixelRatio || 1; this.W = w; this.H = h;
+    this.c.width = w * dpr; this.c.height = h * dpr; this.c.style.height = h + "px";
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.draw();
+  }
+  get m(){ const s = this.W < 480; return {l: s ? 46 : 60, r: 14, t: 14, b: s ? 42 : 48}; }
+  px(x){ const m = this.m; return m.l + (x - this.xMin) / (this.xMax - this.xMin) * (this.W - m.l - m.r); }
+  py(y){ const m = this.m; return this.H - m.b - (y - this.yMin) / (this.yMax - this.yMin) * (this.H - m.t - m.b); }
+  dx(p){ const m = this.m; return this.xMin + (p - m.l) / (this.W - m.l - m.r) * (this.xMax - this.xMin); }
+  dy(p){ const m = this.m; return this.yMin + (this.H - m.b - p) / (this.H - m.t - m.b) * (this.yMax - this.yMin); }
+  draw(){
+    if (!this.W || !this.pts.length) return;
+    const g = this.ctx, cs = getComputedStyle(document.documentElement), C = n => cs.getPropertyValue(n).trim();
+    const W = this.W, H = this.H, m = this.m, small = W < 480;
+    g.clearRect(0, 0, W, H); g.fillStyle = C("--card"); g.fillRect(0, 0, W, H);
+    g.font = `${small ? 10.5 : 12}px ${C("--f-mono")}`; g.lineWidth = 1;
+    for (let x = this.xMin; x <= this.xMax + 1e-9; x += this.xStep){
+      const X = this.px(x); g.strokeStyle = C("--grid"); g.beginPath(); g.moveTo(X, m.t); g.lineTo(X, H - m.b); g.stroke();
+      g.fillStyle = C("--muted"); g.textAlign = "center"; g.textBaseline = "top"; g.fillText(trimNum(x), X, H - m.b + 6);
+    }
+    for (let y = this.yMin; y <= this.yMax + 1e-9; y += this.yStep){
+      const Y = this.py(y); g.strokeStyle = C("--grid"); g.beginPath(); g.moveTo(m.l, Y); g.lineTo(W - m.r, Y); g.stroke();
+      g.fillStyle = C("--muted"); g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(trimNum(y), m.l - 6, Y);
+    }
+    g.strokeStyle = C("--ink"); g.lineWidth = 1.4; g.beginPath();
+    const y0 = Math.min(Math.max(0, this.yMin), this.yMax);   // the x-axis sits at y = 0, or along the bottom edge when the y-axis has a false origin
+    g.moveTo(this.px(0), m.t); g.lineTo(this.px(0), H - m.b); g.moveTo(m.l, this.py(y0)); g.lineTo(W - m.r, this.py(y0)); g.stroke();
+    if (y0 !== 0){ const X = this.px(0), Y = this.py(y0) - 10;   // axis-break mark: the y-axis does not start at zero
+      g.fillStyle = C("--card"); g.fillRect(X - 7, Y - 6, 14, 10); g.beginPath(); g.moveTo(X - 6, Y + 2); g.lineTo(X + 6, Y - 2); g.moveTo(X - 6, Y + 6); g.lineTo(X + 6, Y + 2); g.stroke(); }
+    const qx = Q(LAB.axes.x), qy = Q(LAB.axes.y);
+    g.fillStyle = C("--ink"); g.font = `600 ${small ? 11 : 12.5}px ${C("--f-body")}`;
+    g.textAlign = "right"; g.textBaseline = "bottom"; g.fillText(qLbl(LAB.axes.x), W - m.r, H - 4);
+    g.save(); g.translate(13, m.t + 2); g.rotate(-Math.PI / 2); g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(qLbl(LAB.axes.y), 0, 0); g.restore();
+    g.save(); g.beginPath(); g.rect(m.l, m.t, W - m.l - m.r, H - m.t - m.b); g.clip();
+    this.lines.forEach(L => {
+      if (!L.show) return; const {m: s, b} = lineOf(L);
+      g.strokeStyle = C(L.color); g.lineWidth = L.active ? 2.6 : 1.8; g.setLineDash(L.dash ? [7, 5] : []);
+      g.beginPath(); g.moveTo(this.px(this.xMin), this.py(s * this.xMin + b)); g.lineTo(this.px(this.xMax), this.py(s * this.xMax + b)); g.stroke(); g.setLineDash([]);
+    });
+    g.restore();
+    const vert = LAB.err.axis === "y";
+    this.pts.forEach(p => {
+      const e = errOf(p);
+      const X = this.px(p.x), Y = this.py(p.y);
+      const col = p.excl ? C("--muted") : C("--navy");
+      g.strokeStyle = col; g.lineWidth = 1.4; g.beginPath();
+      if (vert){ const y1 = this.py(p.y - e), y2 = this.py(p.y + e); g.moveTo(X, y1); g.lineTo(X, y2); g.moveTo(X - 5, y1); g.lineTo(X + 5, y1); g.moveTo(X - 5, y2); g.lineTo(X + 5, y2); }
+      else { const x1 = this.px(p.x - e), x2 = this.px(p.x + e); g.moveTo(x1, Y); g.lineTo(x2, Y); g.moveTo(x1, Y - 5); g.lineTo(x1, Y + 5); g.moveTo(x2, Y - 5); g.lineTo(x2, Y + 5); }
+      g.stroke();
+      if (p.excl){ g.beginPath(); g.arc(X, Y, 4.5, 0, 7); g.fillStyle = C("--card"); g.fill(); g.stroke(); }
+      else { g.beginPath(); g.arc(X, Y, 4.5, 0, 7); g.fillStyle = col; g.fill(); }
+      if (this.tag === p.i){ g.strokeStyle = C("--amber"); g.lineWidth = 2.5; g.beginPath(); g.arc(X, Y, 11, 0, 7); g.stroke();
+        g.fillStyle = C("--amber"); g.font = `600 ${small ? 10.5 : 12}px ${C("--f-mono")}`; g.textAlign = "left"; g.textBaseline = "bottom"; g.fillText(`Trial ${p.i + 1}`, X + 12, Y - 8); }
+    });
+    this.lines.forEach(L => {
+      if (!L.show || !L.editable) return;
+      [L.a, L.b].forEach(h => { const X = this.px(h.x), Y = this.py(h.y);
+        g.beginPath(); g.arc(X, Y, L.active ? 8 : 6, 0, 7); g.fillStyle = C("--card"); g.fill(); g.strokeStyle = C(L.color); g.lineWidth = 2.5; g.stroke();
+        if (L.active){ g.beginPath(); g.arc(X, Y, 2.5, 0, 7); g.fillStyle = C(L.color); g.fill(); } });
+    });
+  }
+  pos(e){ const r = this.c.getBoundingClientRect(); return {X:e.clientX - r.left, Y:e.clientY - r.top}; }
+  down(e){
+    const {X, Y} = this.pos(e); const reach = e.pointerType === "touch" ? 28 : 16;
+    let best = null, bd = 1e9;
+    this.lines.forEach(L => { if (!L.show || !L.editable || !L.active) return;
+      ["a","b"].forEach(k => { const d = Math.hypot(this.px(L[k].x) - X, this.py(L[k].y) - Y); if (d < bd){ bd = d; best = {L, k}; } }); });
+    if (best && bd <= reach){ this.drag = best; this.c.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+    if (this.onPick){
+      let bp = null, pd = 1e9; this.pts.forEach(p => { const d = Math.hypot(this.px(p.x) - X, this.py(p.y) - Y); if (d < pd){ pd = d; bp = p; } });
+      if (bp && pd <= reach + 6) this.onPick(bp);
+    }
+  }
+  move(e){
+    if (!this.drag) return; const {X, Y} = this.pos(e);
+    let x = Math.min(Math.max(this.dx(X), this.xMin), this.xMax), y = Math.min(Math.max(this.dy(Y), this.yMin), this.yMax);
+    const o = this.drag.k === "a" ? this.drag.L.b : this.drag.L.a;
+    if (Math.abs(x - o.x) < this.xStep * 0.3) return;
+    this.drag.L[this.drag.k] = {x, y}; this.draw(); if (this.onChange) this.onChange(this.drag.L);
+  }
+  png(){ return this.c.toDataURL("image/png"); }
+}
+function niceStep(raw){ const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+function trimNum(v){ return String(rnd(v, 3)); }
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const STAGES = [
+  {id:"brief", name:"Briefing"}, {id:"data", name:"Evidence"}, {id:"axes", name:"Axes"}, {id:"graph", name:"Graph"},
+  {id:"anom", name:"Anomaly"}, {id:"grad", name:"Gradient"}, {id:"unc", name:"Uncertainty"}, {id:"cer", name:"Conclusion"}, {id:"rep", name:"Report"}];
+let st = null; let D = null; let currentPlot = null; 
+const sessKey = () => `${LAB.storageKey}:session`;
+function stateKey(c, t, tr){ return `${LAB.storageKey}:${String(c).trim().toUpperCase()}:${t}:${tr}`; }
+function freshState(){ return {classCode:SETUP.classCode, team:1, track:SETUP.track, names:"", started:false, stage:0, done:{}, a:{}, tries:{}, an:{}, lines:{}}; }
+function save(){ if (st && st.started){ store(stateKey(st.classCode, st.team, st.track), st); store(sessKey(), {c:st.classCode, t:st.team, tr:st.track}); } }
+function T(){ return LAB.tracks[st.track]; }
+function rows(){ return cleanRows(D, st.an); }
+function tries(id){ st.tries[id] = (st.tries[id] || 0) + 1; }
+const specTxt = () => withU(D.spec.toFixed(LAB.specDp), FU());
+const sqU = () => Q(LAB.suspectQty).unit, sqDp = () => Q(LAB.suspectQty).dp;
+
+/* Class links: ?track=ib-hl&class=10B&teams=8 override the SETUP block */
+const TRACK_CODES = {"general":"General", "honors":"Honors", "ap1":"AP Physics 1", "ap2":"AP Physics 2", "ib-sl":"IB Physics SL", "ib-hl":"IB Physics HL"};
+const trackCode = name => Object.keys(TRACK_CODES).find(k => TRACK_CODES[k] === name) || "general";
+const LINK = (() => { const o = {}; try { const q = new URLSearchParams(location.search);
+  const t = TRACK_CODES[(q.get("track") || "").toLowerCase()]; if (t && LAB.tracks[t]) o.track = t;
+  const c = (q.get("class") || "").trim().slice(0, 24); if (c) o.classCode = c;
+  const n = parseInt(q.get("teams"), 10); if (n >= 1 && n <= 30) o.teams = n; } catch(e){} return o; })();
+function init(){
+  Object.assign(SETUP, LINK);
+  if (!LAB.tracks[SETUP.track]) SETUP.track = "General";
+  const s = load(sessKey());
+  if (s){ const saved = load(stateKey(s.c, s.t, s.tr)); const linkClash = saved && ((LINK.track && saved.track !== LINK.track) || (LINK.classCode && saved.classCode.toUpperCase() !== LINK.classCode.toUpperCase()));
+    if (saved && saved.started && LAB.tracks[saved.track] && !linkClash){ st = saved; D = teamData(st.classCode, st.team, st.track); } }
+  if (!st) st = freshState();
+  if (!st.started){ st.track = SETUP.track; st.classCode = SETUP.classCode; }
+  render();
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const redraw = () => currentPlot && currentPlot.draw();
+  mq.addEventListener && mq.addEventListener("change", redraw);
+  new MutationObserver(redraw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+}
+
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+function render(){
+  currentPlot = null;
+  $("#caseTag").textContent = `${LAB.code} · ${LAB.topic}`;
+  $("#chipTrack").textContent = st.track;
+  const ct = $("#chipTeam"); ct.hidden = !st.started; ct.textContent = `${st.classCode.toUpperCase()} · Team ${st.team}`;
+  
+  $("#rail").innerHTML = STAGES.map((s, i) => {
+    const open = i === 0 || st.done[STAGES[i - 1].id];
+    return `<li><button type="button" data-go="${i}" class="${st.done[s.id] ? "done" : ""} ${i === st.stage ? "cur" : ""}" ${open && (st.started || i === 0) ? "" : "disabled"}><span class="n">${st.done[s.id] ? "✓" : i + 1}</span>${s.name}</button></li>`;
+  }).join("");
+  $$("#rail [data-go]").forEach(b => b.onclick = () => { st.stage = +b.dataset.go; save(); render(); window.scrollTo({top:0}); });
+  const id = STAGES[st.stage].id;
+  $("#wrap").classList.toggle("has-log", st.started && id !== "rep");
+  $("#log").hidden = !(st.started && id !== "rep");
+  if (!$("#log").hidden) renderLog();
+  const S = $("#stage"); S.innerHTML = ""; S.style.animation = "none"; void S.offsetWidth; S.style.animation = "";
+  ({brief:stBrief, data:stData, axes:stAxes, graph:stGraph, anom:stAnom, grad:stGrad, unc:stUnc, cer:stCer, rep:stRep})[id](S);
+}
+function head(i, title, lede){ return `<div><div class="eyebrow">Stage ${i + 1} of ${STAGES.length} · ${STAGES[i].name}</div><h2>${title}</h2>${lede ? `<p class="lede" style="margin-top:6px">${lede}</p>` : ""}</div>`; }
+function mcqHTML(id, q, opts, num_){
+  const v = st.a[id];
+  return `<div class="field"><span class="lbl">${num_ ? `<span class="mono" style="color:var(--teal)">${num_}</span> ` : ""}${q}</span><div class="mcq" role="radiogroup">${opts.map(([k, t]) =>
+    `<label class="${v === k ? "sel" : ""}"><input type="radio" name="${id}" value="${k}" ${v === k ? "checked" : ""}><span>${t}</span></label>`).join("")}</div></div>`;
+}
+function bindMcq(root){ $$(".mcq input", root).forEach(r => r.onchange = () => { st.a[r.name] = r.value; $$(`input[name="${r.name}"]`, root).forEach(o => o.closest("label").classList.toggle("sel", o.checked)); save(); }); }
+function bindInputs(root){ $$("[data-a]", root).forEach(el => { if (st.a[el.dataset.a] != null) el.value = st.a[el.dataset.a]; el.addEventListener("input", () => { st.a[el.dataset.a] = el.value; save(); }); }); }
+function fb(el, kind, lines){ el.className = "fb " + kind; el.innerHTML = lines.map(l => `<span${kind === "info" ? ' class="fbline"' : ""}>${l}</span>`).join(""); }
+function nextBtn(i){ return `<button class="btn navy" type="button" id="next" ${st.done[STAGES[i].id] ? "" : "hidden"}>Continue to ${STAGES[i + 1] ? STAGES[i + 1].name : ""} →</button>`; }
+function bindNext(S, i){ const b = $("#next", S); if (b) b.onclick = () => { st.stage = i + 1; save(); render(); window.scrollTo({top:0}); }; }
+function complete(S, i){ st.done[STAGES[i].id] = true; save(); const b = $("#next", S); if (b) b.hidden = false;
+  $$("#rail [data-go]").forEach((bt, j) => { if (j === i){ bt.classList.add("done"); bt.querySelector(".n").textContent = "✓"; } if (j === i + 1) bt.disabled = false; }); }
+
+function dataTable(showProc){
+  const rs = rows(); const cols = LAB.tableCols(st.track, showProc);
+  return `<div class="tbl-wrap"><table><thead><tr>${cols.map(c => `<th>${c === "n" ? "Trial" : Q(c).label ? Q(c).label : `${Q(c).sym}${qAxis(c) ? ` <span class="u">/ ${qAxis(c)}</span>` : ""}`}</th>`).join("")}</tr></thead><tbody>${
+    rs.map(r => `<tr class="${r.excl ? "excl" : ""} ${r.flag ? "flag" : ""}">${cols.map(c => `<td>${c === "n" ? r.n : fx(r[c], Q(c).dp)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function renderLog(){
+  const L = $("#log"); const showProc = !!st.done.data;
+  let res = "";
+  if (st.done.grad){ res += `<dt>Gradient</dt><dd>${esc(st.a.grad)} ${LAB.slopeUnit}</dd><dt>${FS()}</dt><dd>${esc(st.a.kval)} ${FU()}</dd>`; }
+  if (st.done.unc){ res += `<dt>Final</dt><dd>${esc(st.a.fk)} ± ${esc(st.a.fdk)} ${FU()}</dd>`; }
+  const an = st.an.action ? `<dt>Anomaly</dt><dd>Trial ${D.suspect + 1} · ${st.an.action === "remeasure" ? (LAB.remeasureWord || "repeated") : "excluded"}</dd>` : "";
+  L.innerHTML = `<div class="panel"><div class="inline" style="justify-content:space-between"><h3>Evidence log</h3><span class="tag amber">Team ${st.team}</span></div>
+    <p style="font-size:.84rem;color:var(--muted)">${LAB.rawNote(D, st.track)}</p>
+    ${dataTable(showProc)}
+    ${st.an.action === "remeasure" ? `<p style="font-size:.8rem;color:var(--muted)">${LAB.recordedNote(D)}</p>` : ""}
+    <dl class="kv"><dt>${LAB.specLabel}</dt><dd>${specTxt()}</dd>${an}${res}</dl></div>`;
+}
+
+/* ---------- Stage 1: Briefing ---------- */
+function stBrief(S){
+  const i = 0;
+  if (!st.started){
+    const preview = teamData(st.classCode, st.team, st.track);
+    S.innerHTML = `${head(i, `${LAB.code}: ${LAB.title}`, "Each team gets its own set of readings. Your teacher gives you the class code and your team number.")}
+      <div class="panel case"><div class="eyebrow" style="color:var(--amber)">Case file · ${LAB.topic}</div><div class="prose" id="brief">${LAB.briefing(preview, SETUP)}</div>
+        ${LAB.specNote === null ? "" : `<p style="font-size:.82rem;color:var(--muted)">${LAB.specNote || `The ${LAB.specWord} value above changes once you choose your team.`}</p>`}</div>
+      <div class="panel"><h3>Sign in your team</h3>
+        <div class="row">
+          <div class="field"><label for="fCode">Class code</label><input type="text" id="fCode" value="${esc(st.classCode)}" autocomplete="off" ${LINK.classCode ? "readonly" : ""}>${LINK.classCode ? `<span class="hint">Set by your teacher's link.</span>` : ""}</div>
+          <div class="field"><label for="fTeam">Team number</label><select id="fTeam">${Array.from({length:Math.max(1, Math.min(30, SETUP.teams))}, (_, k) => `<option ${k + 1 === st.team ? "selected" : ""}>${k + 1}</option>`).join("")}</select></div>
+          ${SETUP.letStudentsPickTrack ? `<div class="field"><label for="fTrack">Course</label><select id="fTrack">${Object.keys(LAB.tracks).map(t => `<option ${t === st.track ? "selected" : ""}>${t}</option>`).join("")}</select></div>` : ""}
+        </div>
+        <div class="field"><label for="fNames">Team members</label><input type="text" id="fNames" placeholder="e.g. Sara A., Lina M., Noor K." value="${esc(st.names)}"><span class="hint">These names go on your printed report.</span></div>
+        <div class="actions"><button class="btn" type="button" id="go">Open the case file</button></div>
+        <div class="fb" id="fb0"></div></div>`;
+    const upd = () => { const c = $("#fCode").value.trim() || SETUP.classCode; const t = +$("#fTeam").value; const tr = $("#fTrack") ? $("#fTrack").value : st.track; $("#brief").innerHTML = LAB.briefing(teamData(c, t, tr), SETUP); };
+    ["#fCode","#fTeam","#fTrack"].forEach(s => { const el = $(s); if (el) el.addEventListener("input", upd); });
+    $("#go").onclick = () => {
+      const c = $("#fCode").value.trim(); if (!c){ fb($("#fb0"), "bad", ["Enter the class code your teacher gave you."]); return; }
+      const t = +$("#fTeam").value, tr = $("#fTrack") ? $("#fTrack").value : st.track;
+      const names = $("#fNames").value.trim(); if (!names){ fb($("#fb0"), "bad", ["Add your team members' names first."]); return; }
+      const saved = load(stateKey(c, t, tr));
+      if (saved && saved.started){ st = saved; st.names = names; }
+      else { st = freshState(); Object.assign(st, {classCode:c, team:t, track:tr, names, started:true}); }
+      D = teamData(st.classCode, st.team, st.track); save(); render();
+    };
+    return;
+  }
+  const B = LAB.briefingCheck;
+  S.innerHTML = `${head(i, `${LAB.code}: ${LAB.title}`, `Team ${st.team} · ${esc(st.names)}`)}
+    <div class="panel case"><div class="eyebrow" style="color:var(--amber)">Case file · ${LAB.topic}</div><div class="prose">${LAB.briefing(D, SETUP)}</div></div>
+    <div class="panel"><h3>Check-in</h3>${mcqHTML("b1", B.q, B.options)}
+      <div class="actions"><button class="btn" type="button" id="chk">Check</button>${nextBtn(i)}</div><div class="fb" id="f"></div>
+      <div class="inlinecfm noprint" id="reset"><button class="btn ghost small" type="button" id="rs">Switch team or start over</button></div></div>`;
+  bindMcq(S); bindNext(S, i);
+  $("#chk").onclick = () => { tries("b1"); if (st.a.b1 === B.correct){ fb($("#f"), "ok", ["<strong>Correct.</strong> " + B.why]); complete(S, i); } else fb($("#f"), "bad", [st.a.b1 ? B.nudge : "Choose an answer first."]); };
+  $("#rs").onclick = () => { $("#reset").innerHTML = `<span>Leave this team? Your answers stay saved on this device.</span><button class="btn small" type="button" id="rsy">Yes, sign out</button><button class="btn ghost small" type="button" id="rsn">Cancel</button>`;
+    $("#rsy").onclick = () => { const keep = {classCode:st.classCode, team:st.team, track:st.track}; st = freshState(); Object.assign(st, keep); store(sessKey(), null); D = null; render(); };
+    $("#rsn").onclick = () => render(); };
+}
+
+/* ---------- Stage 2: Evidence ---------- */
+function stData(S){
+  const i = 1, tr = T(), r = D.rows[D.pcRow];
+  const needs = tr.process;
+  S.innerHTML = `${head(i, "Read the evidence", "This is your team's raw data, exactly as the technician recorded it. Every team has different readings.")}
+    <div class="panel"><div class="inline" style="justify-content:space-between"><h3>Raw readings</h3><span class="tag">${tr.raw.map(k => Q(k).name).join(" · ")}</span></div>
+      <p style="font-size:.9rem;color:var(--muted)">${LAB.rawNote(D, st.track)}</p>${dataTable(false)}</div>
+    <div class="panel"><h3>Variables</h3>${LAB.variableChecks.map((v, k) => mcqHTML(v.id, v.q, v.options, `Q${k + 1}`)).join("")}</div>
+    ${needs.length ? `<div class="panel"><h3>Process one row yourself</h3><p style="font-size:.92rem">Before the app processes the whole table, prove you can do it. Use <strong>${LAB.pcDesc(r, st.track)}</strong>.</p>
+      ${needs.map(k => { const P = LAB.processing[k]; return `<div class="field"><label for="p_${k}">${P.label} for trial ${r.n}</label><div class="inline"><input class="numin" type="text" inputmode="decimal" id="p_${k}" data-a="p_${k}"><span class="unit">${P.unit}</span></div><span class="hint">${P.how(r, SETUP, D, st.track)}</span></div>`; }).join("")}</div>` : ""}
+    <div class="actions"><button class="btn" type="button" id="chk">Check</button>${nextBtn(i)}</div><div class="fb" id="f"></div>`;
+  bindMcq(S); bindInputs(S); bindNext(S, i);
+  $("#chk").onclick = () => {
+    tries("data"); const msgs = []; let ok = true;
+    LAB.variableChecks.forEach((v, k) => { if (st.a[v.id] !== v.correct){ ok = false; msgs.push(`Q${k + 1}: ${st.a[v.id] ? "not yet. Which quantity did the technician choose, and what had to stay fixed?" : "choose an answer."}`); } });
+    needs.forEach(k => { const P = LAB.processing[k], v = num(st.a["p_" + k]), t = P.value(r, SETUP, D, st.track);
+      if (!near(v, t, P.tol, P.abs || 0)){ ok = false; msgs.push(`${P.label}: ${Number.isFinite(v) ? P.fail(v, r, SETUP, D, st.track) : "enter a number."}`); } });
+    if (ok){ fb($("#f"), "ok", ["<strong>Evidence verified.</strong> " + LAB.variableChecks[0].why, needs.length ? "The app has now processed every row the same way. See the evidence log." : "The evidence log now holds your team's data for the rest of the case."]); complete(S, i); renderLog(); }
+    else fb($("#f"), "bad", msgs);
+  };
+}
+
+/* ---------- Stage 3: Axes ---------- */
+function stAxes(S){
+  const i = 2; const avail = LAB.axisAvail(st.track);
+  const opt = sel => `<option value="">Choose…</option>` + avail.map(k => `<option value="${k}" ${sel === k ? "selected" : ""}>${Q(k).name}${Q(k).unit ? ` (${Q(k).sym} / ${Q(k).unit})` : ""}</option>`).join("");
+  S.innerHTML = `${head(i, "Choose your axes", LAB.axesLede)}
+    <div class="panel"><div class="starter">${LAB.axesStarter}</div>
+      <div class="row"><div class="field"><label for="ay">Vertical axis (y)</label><select id="ay">${opt(st.a.ay)}</select></div>
+      <div class="field"><label for="ax">Horizontal axis (x)</label><select id="ax">${opt(st.a.ax)}</select></div></div>
+      <div class="actions"><button class="btn" type="button" id="chk">Check axes</button>${nextBtn(i)}</div><div class="fb" id="f"></div></div>`;
+  bindNext(S, i);
+  $("#ay").onchange = e => { st.a.ay = e.target.value; save(); }; $("#ax").onchange = e => { st.a.ax = e.target.value; save(); };
+  $("#chk").onclick = () => { tries("axes"); if (!st.a.ay || !st.a.ax){ fb($("#f"), "bad", ["Choose a quantity for each axis."]); return; }
+    const m = LAB.axisFeedback(st.a.ay, st.a.ax, st.track);
+    if (m) fb($("#f"), "bad", [m]); else { fb($("#f"), "ok", ["<strong>Right graph.</strong> " + LAB.axesOK]); complete(S, i); } };
+}
+
+/* ---------- Stage 4: Graph ---------- */
+function stGraph(S){
+  const i = 3, G = LAB.graphCheck;
+  S.innerHTML = `${head(i, "Plot the evidence", LAB.graphLede)}
+    <div class="panel"><div class="plotbox" id="pb"></div></div>
+    <div class="panel">${mcqHTML("g1", G.q, G.options)}
+      <div class="actions"><button class="btn" type="button" id="chk">Check</button>${nextBtn(i)}</div><div class="fb" id="f"></div></div>`;
+  const P = new Plot($("#pb")); currentPlot = P; P.setPoints(plotPts(cleanRows(D, {})));
+  bindMcq(S); bindNext(S, i);
+  $("#chk").onclick = () => { tries("graph"); if (st.a.g1 === G.correct){ fb($("#f"), "ok", ["<strong>Yes.</strong> " + G.why]); complete(S, i); } else fb($("#f"), "bad", [st.a.g1 ? G.nudge : "Choose an answer first."]); };
+}
+
+/* ---------- Stage 5: Anomaly ---------- */
+function stAnom(S){
+  const i = 4, A = LAB.anomalyReason;
+  const picked = st.a.pick;
+  S.innerHTML = `${head(i, "Find the suspect reading", "Tap the point you think the technician got wrong. Then decide what to do about it.")}
+    <div class="panel"><div class="plotbox" id="pb"></div>
+      <div class="readout" id="ro">${picked ? `Tagged: <b>Trial ${picked}</b>` : "No point tagged yet. Tap a point on the graph."}</div></div>
+    <div class="panel">${mcqHTML("an1", A.q, A.options, "Q1")}
+      ${mcqHTML("an2", "What will your team do with it?", LAB.anomalyActions, "Q2")}
+      <div class="actions"><button class="btn" type="button" id="chk">Submit</button>${nextBtn(i)}</div><div class="fb" id="f"></div></div>`;
+  const P = new Plot($("#pb")); currentPlot = P;
+  const showPts = () => P.setPoints(plotPts(cleanRows(D, st.done.anom ? st.an : {})));
+  P.tag = picked ? picked - 1 : null; showPts();
+  if (!st.done.anom) P.onPick = p => { st.a.pick = p.i + 1; P.tag = p.i; P.draw(); $("#ro").innerHTML = `Tagged: <b>Trial ${p.i + 1}</b>`; save(); };
+  bindMcq(S); bindNext(S, i);
+  $("#chk").onclick = () => {
+    if (st.done.anom) return; tries("anom");
+    if (!st.a.pick){ fb($("#f"), "bad", ["Tap a point on the graph to tag it."]); return; }
+    if (st.a.pick !== D.suspect + 1){ fb($("#f"), "bad", [`Trial ${st.a.pick} sits within its error bar of the trend. Look for a point whose error bar can't reach the line the other points make.`]); return; }
+    if (st.a.an1 !== A.correct){ fb($("#f"), "bad", ["You found the right point. Now pick the reason that would convince the lab manager."]); return; }
+    if (!st.a.an2){ fb($("#f"), "bad", ["Choose what to do with the reading."]); return; }
+    st.an = {action:st.a.an2};
+    const msg = st.a.an2 === "remeasure" ? LAB.remeasureMsg(D) : LAB.excludeMsg(D);
+    fb($("#f"), "ok", ["<strong>Suspect identified.</strong> " + A.why, msg, "Good practice: never erase an anomaly. Record it and explain how you dealt with it."]);
+    P.onPick = null; complete(S, i); showPts(); renderLog();
+  };
+}
+
+/* ---------- Stage 6: Gradient & intercept ---------- */
+function initLine(pts, kind){
+  const p = pts.filter(q => !q.excl).sort((a, b) => a.x - b.x); const f = p[0], l = p[p.length - 1];
+  const fit = lsq(p);
+  if (kind === "best"){
+    if (fit.m > 0 && !(LAB.plot && LAB.plot.yFalseOrigin)) return {a:{x:f.x * 0.6, y:f.y * 0.35}, b:{x:l.x * 0.95, y:l.y * 0.8}};
+    // Falling data or a false origin (Case 10): start too shallow and too high, inside the data's range, so the line must be dragged.
+    const sp = l.x - f.x, cx = (f.x + l.x) / 2, cy = fit.m * cx + fit.b + 0.12 * Math.abs(fit.m) * sp, m0 = 0.4 * fit.m;
+    const xa = f.x + 0.05 * sp, xb = l.x - 0.05 * sp;
+    return {a:{x:xa, y:cy + m0 * (xa - cx)}, b:{x:xb, y:cy + m0 * (xb - cx)}};
+  }
+  const s = kind === "max" ? 1.12 : 0.9, cx = (f.x + l.x) / 2, cy = fit.m * cx + fit.b;   // "max" = steeper (larger |gradient|) for either sign
+  return {a:{x:f.x, y:cy - fit.m * s * (cx - f.x)}, b:{x:l.x, y:cy + fit.m * s * (l.x - cx)}};
+}
+function handleTxt(L){ const qx = Q(LAB.axes.x), qy = Q(LAB.axes.y);
+  return [`(${withU(fx(L.a.x, LAB.readDp.x), qx.unit)}, ${withU(fx(L.a.y, LAB.readDp.y), qy.unit)})`, `(${withU(fx(L.b.x, LAB.readDp.x), qx.unit)}, ${withU(fx(L.b.y, LAB.readDp.y), qy.unit)})`]; }
+function stGrad(S){
+  const i = 5; const pts = plotPts(rows()); const qx = Q(LAB.axes.x), qy = Q(LAB.axes.y), tol = LAB.tol;
+  if (!st.lines.best) st.lines.best = initLine(pts, "best");
+  S.innerHTML = `${head(i, "Gradient and intercept", "Drag the two round handles until the line is your best fit: as many points above as below, through as many error bars as possible. Ignore any excluded point.")}
+    <div class="panel"><div class="plotbox" id="pb"></div>
+      <div class="readout" id="ro"></div></div>
+    <div class="panel"><h3><span class="q">A</span>Gradient</h3>
+      <p style="font-size:.9rem;color:var(--muted)">Use the two handle positions as your two points. Gradient = Δy ÷ Δx = (${qy.sym}₂ − ${qy.sym}₁) ÷ (${qx.sym}₂ − ${qx.sym}₁).</p>
+      <div class="row"><div class="field"><label for="gv">Gradient of your line</label><input class="numin" id="gv" type="text" inputmode="decimal" data-a="grad"></div>
+        <div class="field"><label for="gu">Unit of the gradient</label><select id="gu" data-a="gunit"><option value="">Choose…</option>${LAB.gradUnits.map(u => `<option value="${u}">${u}</option>`).join("")}</select></div>
+        <div class="field"><label for="kv">${LAB.finalField.label}</label><div class="inline"><input class="numin" id="kv" type="text" inputmode="decimal" data-a="kval"><span class="unit">${FU()}</span></div><span class="hint">${LAB.finalField.hint}</span></div></div>
+      ${mcqHTML("gm", LAB.gradientMeaning.q, LAB.gradientMeaning.options)}</div>
+    <div class="panel"><h3><span class="q">B</span>Intercept</h3>
+      <div class="field"><label for="iv">${LAB.icptLabel}</label><div class="inline"><input class="numin" id="iv" type="text" inputmode="decimal" data-a="icpt"><span class="unit">${LAB.interceptUnit}</span></div><span class="hint">${LAB.icptHint}</span></div>
+      ${mcqHTML("im", "What does your intercept tell you?", LAB.interceptOptions)}</div>
+    <div class="actions"><button class="btn" type="button" id="chk">Check my analysis</button>${nextBtn(i)}</div><div class="fb" id="f"></div>`;
+  const P = new Plot($("#pb")); currentPlot = P;
+  const L = {id:"best", ...st.lines.best, color:"--teal", show:true, editable:!st.done.grad, active:!st.done.grad}; P.lines = [L];
+  const ro = () => { const h = handleTxt(L); $("#ro").innerHTML = `Handle 1: <b>${h[0]}</b> Handle 2: <b>${h[1]}</b>`; };
+  P.onChange = () => { st.lines.best = {a:L.a, b:L.b}; ro(); save(); };
+  P.setPoints(pts); ro();
+  bindMcq(S); bindInputs(S); bindNext(S, i);
+  $("#chk").onclick = () => {
+    tries("grad"); const msgs = []; let ok = true;
+    const use = pts.filter(p => !p.excl), fit = lsq(use), mine = lineOf(L), yErr = LAB.err.axis === "y";
+    const res = use.map(p => yErr ? p.y - (mine.m * p.x + mine.b) : (p.y - mine.b) / mine.m - p.x);
+    const meanAbs = res.reduce((s, r) => s + Math.abs(r), 0) / res.length; const bias = res.reduce((s, r) => s + r, 0) / res.length;
+    if (!near(mine.m, fit.m, tol.slopeRel) || meanAbs > tol.meanRes){ ok = false;
+      // Compare algebraically: too high a gradient → lower the right-hand handle, for either sign. Only the wording depends on the sign.
+      // x-bars: res = x where the line reaches the point's y, minus the point's x, so bias > 0 means the line sits to the RIGHT of the points
+      // (Case 10 fix: Cases 06, 08 and 09 had the two left/right messages the wrong way round).
+      const up = fit.m >= 0, dm = tol.slopeRel * Math.abs(fit.m);
+      msgs.push(mine.m > fit.m + dm ? (up ? "Your line is steeper than the evidence supports. Lower the right-hand handle." : "Your line falls less steeply than the evidence supports. Lower the right-hand handle.")
+        : mine.m < fit.m - dm ? (up ? "Your line is shallower than the evidence supports. Raise the right-hand handle." : "Your line falls more steeply than the evidence supports. Raise the right-hand handle.")
+        : yErr ? (bias > 0 ? "Right steepness, but the line sits too low: drag it up so points fall on both sides." : "Right steepness, but the line sits too high: drag it down so points fall on both sides.")
+        : (bias > 0 ? "Right steepness, but the line sits too far right: shift it to the left so points fall on both sides." : "Right steepness, but the line sits too far left: shift it to the right so points fall on both sides.")); }
+    const g = num(st.a.grad), k = num(st.a.kval), c = num(st.a.icpt);
+    if (!near(g, mine.m, 0.03)) { ok = false; msgs.push(Number.isFinite(g) ? `Gradient: recheck Δy ÷ Δx using the handle coordinates (check your subtraction order and which value goes on top).` : "Gradient: enter a number."); }
+    if (st.a.gunit !== LAB.gradUnitCorrect){ ok = false; msgs.push("Gradient unit: the y-unit divided by the x-unit."); }
+    if (!near(k, toFinal(mine.m), 0.03)){ ok = false; msgs.push(Number.isFinite(k) ? LAB.convFail(k, mine.m) : `${FS()}: enter a number.`); }
+    if (st.a.gm !== LAB.gradientMeaning.correct){ ok = false; msgs.push("Gradient meaning: compare your equation with y = mx + c."); }
+    if (!near(c, mine.b, tol.icptRel, tol.icptAbs)){ ok = false; msgs.push(Number.isFinite(c) ? "Intercept: read where your line crosses the vertical axis at x = 0, or use c = y₁ − m·x₁." : "Intercept: enter a number (it can be negative)."); }
+    const ik = LAB.interceptKey(fit, D);
+    if (!ik.includes(st.a.im)){ ok = false; msgs.push(st.a.im === "random" ? "Intercept meaning: random errors scatter points both ways. They don't shift the whole line." : st.a.im === "k" ? LAB.interceptFail.k : !st.a.im ? "Intercept meaning: choose an answer." : ik[0] === "zero" ? LAB.interceptFail.zero : LAB.interceptFail.origin); }
+    if (ok){ L.editable = false; L.active = false; P.draw();
+      fb($("#f"), "ok", [`<strong>Analysis accepted.</strong> Your ${LAB.finalName.toLowerCase()} is ${withU(`${FS()} = ${esc(st.a.kval)}`, FU())}.`, ik.length === 2 ? "Your intercept is borderline: both readings of it are defensible if you justify them in your conclusion." : ""].filter(Boolean)); complete(S, i); renderLog(); }
+    else fb($("#f"), "bad", msgs);
+  };
+}
+
+/* ---------- Stage 7: Uncertainty ---------- */
+function stUnc(S){
+  const i = 6, mode = T().uncMode, tol = LAB.tol; const pts = plotPts(rows());
+  if (!st.lines.max) st.lines.max = initLine(pts, "max"); if (!st.lines.min) st.lines.min = initLine(pts, "min");
+  const sg = Math.sign(lsq(pts.filter(p => !p.excl)).m) || 1;   // +1 for rising data, −1 for falling data (Case 10): "steeper" = larger |gradient|
+  const n = D.rows.length, f = FS(), u = FU(), eq = Q(LAB.axes[LAB.err.axis]), fall = finalFalls(sg), ref = hlRef(D), rw = refWord();
+  S.innerHTML = `${head(i, "How sure are you?", `Draw the steepest and the shallowest lines that still pass through every error bar. The spread between them tells you the uncertainty in ${f}.`)}
+    <div class="panel"><div class="inline" style="justify-content:space-between"><div class="seg" role="tablist"><button type="button" data-l="max" class="on">Steepest line</button><button type="button" data-l="min">Shallowest line</button></div>
+      <div class="legend"><span><i class="sw" style="background:var(--teal)"></i>Best fit</span><span><i class="sw" style="background:var(--amber)"></i>Steepest</span><span><i class="sw" style="background:var(--navy)"></i>Shallowest</span></div></div>
+      <div class="plotbox" id="pb"></div><div class="readout" id="ro"></div><div class="fb" id="bars"></div></div>
+    <div class="panel"><h3><span class="q">A</span>Uncertainty in ${f}</h3>
+      ${mode === "guided" ? `<p style="font-size:.9rem">The app shows each line's gradient. Use them: <b class="mono">Δ${f} = (${f}<sub>max</sub> − ${f}<sub>min</sub>) ÷ 2</b>.</p>` : `<p style="font-size:.9rem">Work out each line's gradient from its handle coordinates${LAB.slopeUnit ? `, convert to ${u}` : ""}, then <b class="mono">Δ${f} = (${f}<sub>max</sub> − ${f}<sub>min</sub>) ÷ 2</b>.</p>`}
+      <div class="row">
+        <div class="field"><label for="u1">${f}<sub>max</sub> ${fall ? "(from the shallowest line)" : "(steepest)"}</label><div class="inline"><input class="numin" id="u1" type="text" inputmode="decimal" data-a="kmax"><span class="unit">${u}</span></div></div>
+        <div class="field"><label for="u2">${f}<sub>min</sub> ${fall ? "(from the steepest line)" : "(shallowest)"}</label><div class="inline"><input class="numin" id="u2" type="text" inputmode="decimal" data-a="kmin"><span class="unit">${u}</span></div></div>
+        <div class="field"><label for="u3">Δ${f}</label><div class="inline"><input class="numin" id="u3" type="text" inputmode="decimal" data-a="dk"><span class="unit">${u}</span></div></div>
+        ${mode === "ib" ? `<div class="field"><label for="u4">% uncertainty in ${f}</label><div class="inline"><input class="numin" id="u4" type="text" inputmode="decimal" data-a="pk"><span class="unit">%</span></div></div>` : ""}
+      </div>
+      <div class="field"><label for="u5">${LAB.pctQ.label}</label><select id="u5" data-a="pct" style="max-width:200px"><option value="">Choose…</option>${Array.from({length:n}, (_, k) => `<option value="${k + 1}">Trial ${k + 1}</option>`).join("")}</select><span class="hint">${LAB.pctQ.hint}</span></div></div>
+    ${T().hl ? `<div class="panel"><div class="inline" style="justify-content:space-between"><h3><span class="q">HL</span>Uncertainty in the intercept</h3><span class="tag teal">HL extension</span></div>
+      <p style="font-size:.9rem">${LAB.hl.intro}</p>
+      <div class="row">
+        <div class="field"><label for="h1">c from steepest line</label><div class="inline"><input class="numin" id="h1" type="text" inputmode="decimal" data-a="cmax"><span class="unit">${LAB.interceptUnit}</span></div></div>
+        <div class="field"><label for="h2">c from shallowest line</label><div class="inline"><input class="numin" id="h2" type="text" inputmode="decimal" data-a="cmin"><span class="unit">${LAB.interceptUnit}</span></div></div>
+        <div class="field"><label for="h3">Δc</label><div class="inline"><input class="numin" id="h3" type="text" inputmode="decimal" data-a="dc"><span class="unit">${LAB.interceptUnit}</span></div><span class="hint">Half the spread of the two intercepts.</span></div></div>
+      <div class="row">
+        <div class="field"><label for="h4">${LAB.hl.refQ ? LAB.hl.refQ(D) : "Does your range c ± Δc include zero?"}</label><select id="h4" data-a="zin" style="max-width:220px"><option value="">Choose…</option><option value="yes">Yes, ${rw} is inside</option><option value="no">No, ${rw} is outside</option></select><span class="hint">Use your best-fit intercept c = ${withU(esc(st.a.icpt), LAB.interceptUnit)}.</span></div>
+        <div class="field"><label for="h5">${LAB.hl.x0Label}</label><div class="inline"><input class="numin" id="h5" type="text" inputmode="decimal" data-a="x0"><span class="unit">${LAB.hl.x0Unit}</span></div><span class="hint">${LAB.hl.x0Hint}</span></div></div></div>` : ""}
+    <div class="panel"><h3><span class="q">B</span>Final result</h3>
+      <div class="inline mono" style="font-size:1.05rem">${f} = <input class="numin" id="u6" type="text" inputmode="decimal" data-a="fk" style="max-width:110px"> ± <input class="numin" id="u7" type="text" inputmode="decimal" data-a="fdk" style="max-width:100px"> ${u}</div>
+      <span class="hint">Use your best-fit ${f} from the last stage. ${mode === "ib" ? `Round Δ${f} to 1 or 2 significant figures and match the decimal places of ${f}.` : `Round Δ${f} sensibly (1 or 2 significant figures) and give ${f} to the same decimal place.`}</span></div>
+    <div class="actions"><button class="btn" type="button" id="chk">Check</button>${nextBtn(i)}</div><div class="fb" id="f"></div>`;
+  const P = new Plot($("#pb")); currentPlot = P;
+  const best = {id:"best", ...st.lines.best, color:"--teal", show:true, editable:false};
+  const mx = {id:"max", ...st.lines.max, color:"--amber", dash:true, show:true, editable:!st.done.unc, active:!st.done.unc};
+  const mn = {id:"min", ...st.lines.min, color:"--navy", dash:true, show:true, editable:!st.done.unc, active:false};
+  P.lines = [best, mn, mx];
+  const ro = () => {
+    const h = l => handleTxt(l).join(" → ");
+    const g = l => mode === "guided" ? ` · gradient <b>${withU(fx(lineOf(l).m, LAB.slopeDp), LAB.slopeUnit)}</b> = <b>${withU(fFinal(toFinal(lineOf(l).m)), u)}</b>` : "";
+    $("#ro").innerHTML = `<span>Steepest: <b>${h(mx)}</b>${g(mx)}</span><span>Shallowest: <b>${h(mn)}</b>${g(mn)}</span>`;
+    const a = missedBars(mx, pts), b = missedBars(mn, pts);
+    const out = []; if (a.length) out.push(`Steepest line misses trial${a.length > 1 ? "s" : ""} ${a.join(", ")}.`); if (b.length) out.push(`Shallowest line misses trial${b.length > 1 ? "s" : ""} ${b.join(", ")}.`);
+    if (out.length) fb($("#bars"), "info", out); else fb($("#bars"), "ok", ["Both lines pass through every error bar."]);
+  };
+  $$("[data-l]", S).forEach(b => b.onclick = () => { if (st.done.unc) return; $$("[data-l]", S).forEach(o => o.classList.toggle("on", o === b)); mx.active = b.dataset.l === "max"; mn.active = !mx.active; P.lines = mx.active ? [best, mn, mx] : [best, mx, mn]; P.draw(); });
+  P.onChange = l => { st.lines[l.id] = {a:l.a, b:l.b}; ro(); save(); };
+  P.setPoints(pts); ro();
+  bindInputs(S); bindNext(S, i);
+  $("#chk").onclick = () => {
+    tries("unc"); const msgs = []; let ok = true;
+    const a = missedBars(mx, pts), b = missedBars(mn, pts);
+    if (a.length || b.length){ ok = false; msgs.push("Both lines must pass through every error bar (except an excluded point). Adjust the handles until the box under the graph turns green."); }
+    const sM = lineOf(mx).m, sm = lineOf(mn).m, kb = lineOf(best).m;   // gradients; compared as slopes so this works for any conversion
+    // sg × gradient is the steepness, so these comparisons hold for rising (sg = 1, unchanged) and falling (sg = −1) lines
+    if (sg * sM <= sg * kb){ ok = false; msgs.push("Your steepest line must be steeper than your best-fit line."); }
+    if (sg * sm >= sg * kb){ ok = false; msgs.push("Your shallowest line must be shallower than your best-fit line."); }
+    { // limiting lines must be close to the real extremes, or ΔR (and the verdict) would be too optimistic (extremeSlopes: max = steepest for either sign)
+      const ex = extremeSlopes(pts), eM = sg * ex.max, em = sg * ex.min, full = eM - em, need = (LAB.tol.spreadMin ?? 0.7), aM = sg * sM, am = sg * sm, ab = sg * kb;
+      if (!a.length && !b.length && aM > ab && am < ab && full > 0 && (aM - am) < need * full){ ok = false;
+        if (eM - aM > 0.15 * full) msgs.push("Steepest line: an even steeper line still passes through every error bar. Tilt it further until it only just touches the bars.");
+        if (am - em > 0.15 * full) msgs.push("Shallowest line: an even shallower line still passes through every error bar. Tilt it further until it only just touches the bars.");
+        msgs.push(`Your lines give too small an uncertainty. They should be the steepest and shallowest lines the error bars allow, so that Δ${f} is not underestimated.`); }
+    }
+    const kM = num(st.a.kmax), km = num(st.a.kmin), dk = num(st.a.dk);
+    const fHi = fall ? toFinal(sm) : toFinal(sM), fLo = fall ? toFinal(sM) : toFinal(sm), hiL = fall ? "shallowest" : "steepest", loL = fall ? "steepest" : "shallowest";
+    if (!near(kM, fHi, 0.03)){ ok = false; msgs.push(`${f}<sub>max</sub>: find the ${hiL} line's gradient${gradTo()}.${fall && near(kM, fLo, 0.03) ? ` That value comes from the ${loL} line: a steeper line gives a smaller ${f}.` : ""}`); }
+    if (!near(km, fLo, 0.03)){ ok = false; msgs.push(`${f}<sub>min</sub>: find the ${loL} line's gradient${gradTo()}.`); }
+    const tdk = (kM - km) / 2;
+    if (!near(dk, tdk, 0.06, tol.dkAbs)){ ok = false; msgs.push(Number.isFinite(dk) && near(dk, kM - km, 0.06) ? `Δ${f}: that's the full spread. Halve it.` : `Δ${f} = (${f}<sub>max</sub> − ${f}<sub>min</sub>) ÷ 2.`); }
+    if (mode === "ib"){ const pk = num(st.a.pk), tp = dk / num(st.a.kval) * 100; if (!near(pk, tp, 0.08, tol.pkAbs)){ ok = false; msgs.push(`% uncertainty = Δ${f} ÷ ${f} × 100, using your best-fit ${f}.`); } }
+    const first = pctRow(rows());
+    if (+st.a.pct !== first.n){ ok = false; msgs.push(LAB.pctQ.fail); }
+    const fk = num(st.a.fk), fdk = num(st.a.fdk);
+    if (!near(fk, num(st.a.kval), 0.02, tol.finalAbs)){ ok = false; msgs.push(`Final ${f}: use the best-fit value from the Gradient stage.`); }
+    if (!near(fdk, dk, 0.35, tol.fdkAbs)){ ok = false; msgs.push(`Final ± value: use your Δ${f}, rounded sensibly.`); }
+    let hlNote = "";
+    if (T().hl){
+      const iu = LAB.interceptUnit;
+      const cM = num(st.a.cmax), cm = num(st.a.cmin), dc = num(st.a.dc), cb = num(st.a.icpt), g = num(st.a.grad), x0 = num(st.a.x0);
+      if (!near(cM, lineOf(mx).b, tol.hlIcptRel, tol.hlIcptAbs)){ ok = false; msgs.push(`HL · steepest intercept: use c = y₁ − m·x₁ with the steepest line's handle coordinates and its gradient${LAB.slopeUnit ? ` in ${LAB.slopeUnit}` : ""}.`); }
+      if (!near(cm, lineOf(mn).b, tol.hlIcptRel, tol.hlIcptAbs)){ ok = false; msgs.push(`HL · shallowest intercept: use c = y₁ − m·x₁ with the shallowest line's handle coordinates and its gradient${LAB.slopeUnit ? ` in ${LAB.slopeUnit}` : ""}.`); }
+      const tdc = Math.abs(cM - cm) / 2;
+      if (!near(dc, tdc, 0.06, tol.dcAbs)){ ok = false; msgs.push(Number.isFinite(dc) && near(dc, tdc * 2, 0.06, tol.dcAbs) ? "HL · Δc: that's the full spread. Halve it." : "HL · Δc = |c(steepest) − c(shallowest)| ÷ 2."); }
+      const inside = Math.abs(cb - ref) <= dc;   // ref = 0 except where the case compares c with a measured value (Case 10: ln ΔT₀)
+      if (!st.a.zin){ ok = false; msgs.push(`HL · choose whether ${rw} lies inside c ± Δc.`); }
+      else if ((st.a.zin === "yes") !== inside){ ok = false; msgs.push(`HL · your range runs from ${fx(cb - dc, LAB.readDp.y + 1)} to ${withU(fx(cb + dc, LAB.readDp.y + 1), iu)}. Is ${LAB.hl.refShow ? LAB.hl.refShow(D) : rw} inside it?`); }
+      if (!near(x0, (ref - cb) / g, tol.x0Rel, tol.x0Abs)){ ok = false; msgs.push(Number.isFinite(x0) && near(x0, -(ref - cb) / g, tol.x0Rel, tol.x0Abs) ? `HL · check the sign. Solve ${LAB.hl.refSym || "0"} = m·${LAB.hl.x0Short} + c for ${LAB.hl.x0Short}.` : LAB.hl.x0Fail); }
+      if (Number.isFinite(dc) && st.a.zin){
+        hlNote = inside ? LAB.hl.inside : LAB.hl.outside(x0);
+        if ((st.a.im === "origin") === !inside) hlNote += " This sharpens your Stage 6 judgement of the intercept. Mention it in your conclusion."; }
+    }
+    if (ok){ mx.editable = mn.editable = mx.active = mn.active = false; P.draw(); fb($("#f"), "ok", [`<strong>Result recorded:</strong> ${withU(`${f} = ${esc(st.a.fk)} ± ${esc(st.a.fdk)}`, u)}. Your evidence says the true value lies between ${fFinal(fk - fdk)} and ${withU(fFinal(fk + fdk), u)}.`, hlNote].filter(Boolean)); complete(S, i); renderLog(); }
+    else fb($("#f"), "bad", msgs);
+  };
+}
+
+/* ---------- Stage 8: CER ---------- */
+function stCer(S){
+  const i = 7, lvl = T().cer, ST = LAB.cerStarters[lvl], f = FS(), u = FU(), w = LAB.specWord;
+  const fk = num(st.a.fk), fdk = num(st.a.fdk);
+  const parts = [["claim","Claim"],["evidence","Evidence"],["reasoning","Reasoning"]];
+  S.innerHTML = `${head(i, "Close the case", "Write the conclusion the lab manager will read. Claim, evidence, reasoning.")}
+    <div class="panel case"><div class="rep-grid">
+      <div class="rep-cell"><div class="k">${LAB.specLabel}</div><div class="v">${specTxt()}</div></div>
+      <div class="rep-cell"><div class="k">Your result</div><div class="v">${esc(st.a.fk)} ± ${esc(st.a.fdk)} ${u}</div></div>
+      <div class="rep-cell"><div class="k">Your range</div><div class="v">${fFinal(fk - fdk)} to ${fFinal(fk + fdk)} ${u}</div></div></div></div>
+    <div class="panel">${mcqHTML("verdict", LAB.verdictQ || `Verdict: within your uncertainty, does it meet the ${w}'s specification?`, LAB.verdictOpts || [["meets",`Yes: the ${w} value lies inside our uncertainty range`],["fails",`No: the ${w} value lies outside our uncertainty range`]])}</div>
+    ${parts.map(([k, t]) => `<div class="panel"><div class="inline" style="justify-content:space-between"><label class="lbl" for="c_${k}" style="font-size:1rem;font-family:var(--f-display)">${t}</label><span class="wc" id="w_${k}"></span></div>
+      <div class="starter">${ST[k]}</div><textarea id="c_${k}" data-a="c_${k}"></textarea><ul class="checklist" id="l_${k}"></ul></div>`).join("")}
+    <p class="hint" style="font-size:.84rem;color:var(--muted)">The checklists only look for complete parts: a verdict, numbers, units, a link to the physics. They can't tell whether your science is right. Your teacher marks that.</p>
+    <div class="actions"><button class="btn" type="button" id="chk">Submit conclusion</button>${nextBtn(i)}</div><div class="fb" id="f"></div>`;
+  bindMcq(S); bindInputs(S); bindNext(S, i);
+  const upd = k => { const t = st.a["c_" + k] || ""; const wc = t.trim() ? t.trim().split(/\s+/).length : 0; $("#w_" + k).textContent = `${wc} words`;
+    $("#l_" + k).innerHTML = LAB.cerChecks(t, k).map(([lab, y]) => `<li class="${y ? "y" : ""}">${lab}</li>`).join(""); };
+  parts.forEach(([k]) => { upd(k); $("#c_" + k).addEventListener("input", () => upd(k)); });
+  $("#chk").onclick = () => {
+    tries("cer"); const msgs = []; let ok = true;
+    const inside = Math.abs(D.spec - fk) <= fdk;
+    if (!st.a.verdict){ ok = false; msgs.push("Choose a verdict."); }
+    else if ((st.a.verdict === "meets") !== inside){ ok = false; msgs.push(`Verdict: compare ${specTxt()} with your range of ${fFinal(fk - fdk)} to ${withU(fFinal(fk + fdk), u)}. Is it inside or outside?`); }
+    parts.forEach(([k, t]) => { const wc = (st.a["c_" + k] || "").trim().split(/\s+/).filter(Boolean).length; if (wc < 12){ ok = false; msgs.push(`${t}: write at least 12 words (you have ${wc}).`); } });
+    if (ok){ const miss = parts.flatMap(([k]) => LAB.cerChecks(st.a["c_" + k] || "", k).filter(c => !c[1]).map(c => c[0]));
+      fb($("#f"), "ok", ["<strong>Case closed.</strong> Your report is ready on the next stage.", miss.length ? `Before you print, consider adding: ${miss.join("; ").toLowerCase()}.` : "Your conclusion covers every point on the checklists. That means it is complete; your teacher will judge the science."]); complete(S, i); }
+    else fb($("#f"), "bad", msgs);
+  };
+}
+
+/* ---------- Stage 9: Report ---------- */
+function stRep(S){
+  const i = 8; const pts = plotPts(rows()), f = FS(), u = FU(), iu = LAB.interceptUnit, hl = T().hl;
+  const date = new Date().toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"});
+  const totalTries = Object.values(st.tries).reduce((a, b) => a + b, 0);
+  const iText = (LAB.interceptOptions.find(o => o[0] === st.a.im) || ["", "—"])[1];
+  const pctLine = T().uncMode === "ib" ? `<div class="rep-cell"><div class="k">% uncertainty</div><div class="v">${esc(st.a.pk)} %</div></div>` : "";
+  const anomTxt = `trial ${D.suspect + 1} recorded as ${fx(D.recorded, sqDp())} ${sqU()}, ${st.an.action === "remeasure" ? `${LAB.remeasureWord || "repeated"}: ${fx(D.remeasure, sqDp())} ${sqU()}` : "excluded from the fit"}`;
+  S.innerHTML = `<div class="noprint">${head(i, "Case report", framed ? "Copy the report text, or open this lab as its own file to print it." : "Print your report, or save it as a PDF to hand in.")}</div>
+    <div class="actions noprint">${framed ? "" : `<button class="btn" type="button" id="pr">Print or save as PDF</button>`}<button class="btn ghost" type="button" id="cp">Copy report text</button><span id="cpm" class="hint" style="font-size:.85rem;color:var(--muted)"></span></div>
+    <article class="report" id="report">
+      <div class="rep-head"><div><div class="eyebrow">PhysicsFlow · Physics Data Detective</div><h2>${LAB.code}: ${LAB.title}</h2><p style="color:var(--muted)">${LAB.topic} · ${esc(st.track)}${SETUP.schoolName ? " · " + esc(SETUP.schoolName) : ""}</p></div>
+        <dl class="kv" style="align-self:end"><dt>Class</dt><dd>${esc(st.classCode.toUpperCase())}</dd><dt>Team</dt><dd>${st.team}</dd><dt>Date</dt><dd>${date}</dd></dl></div>
+      <p><strong>Investigators:</strong> ${esc(st.names)}</p>
+      <div class="rep-grid">
+        <div class="rep-cell"><div class="k">${LAB.specLabel}</div><div class="v">${specTxt()}</div></div>
+        <div class="rep-cell"><div class="k">Best-fit gradient</div><div class="v">${esc(st.a.grad)} ${LAB.slopeUnit}</div></div>
+        <div class="rep-cell"><div class="k">${LAB.finalName}</div><div class="v">${f} = ${esc(st.a.fk)} ± ${esc(st.a.fdk)} ${u}</div></div>
+        <div class="rep-cell"><div class="k">${f} max / ${f} min</div><div class="v">${esc(st.a.kmax)} / ${esc(st.a.kmin)} ${u}</div></div>${pctLine}
+        <div class="rep-cell"><div class="k">Intercept</div><div class="v">${hl ? `c = ${esc(st.a.icpt)} ± ${esc(st.a.dc)} ${iu}` : `${esc(st.a.icpt)} ${iu}`}</div></div>${hl ? `<div class="rep-cell"><div class="k">${LAB.hl.x0Label} (HL)</div><div class="v">${esc(st.a.x0)} ${LAB.hl.x0Unit} · ${refWord()} ${st.a.zin === "yes" ? "inside" : "outside"} c ± Δc</div></div>` : ""}
+        <div class="rep-cell"><div class="k">Verdict</div><div class="v">${(LAB.verdictWords || ["Meets spec","Does not meet spec"])[st.a.verdict === "meets" ? 0 : 1]}</div></div></div>
+      <div><h3>Evidence</h3><p style="font-size:.88rem;color:var(--muted);margin:4px 0 8px">${LAB.rawNote(D, st.track)} Anomaly: ${anomTxt}.</p>${dataTable(true)}</div>
+      <div><h3>Graph</h3><div class="plotbox" id="pb" style="margin-top:8px"></div><div class="legend" style="margin-top:6px"><span><i class="sw" style="background:var(--teal)"></i>Best fit</span><span><i class="sw" style="background:var(--amber)"></i>Steepest</span><span><i class="sw" style="background:var(--navy)"></i>Shallowest</span></div></div>
+      <div><h3>Intercept</h3><p>${esc(iText)}</p></div>
+      <div class="rep-cer"><h3>Conclusion</h3><p><strong>Claim.</strong> ${esc(st.a.c_claim)}</p><p><strong>Evidence.</strong> ${esc(st.a.c_evidence)}</p><p><strong>Reasoning.</strong> ${esc(st.a.c_reasoning)}</p></div>
+      <p style="font-size:.8rem;color:var(--muted)">Checks attempted: ${totalTries}. Data set generated from class code ${esc(st.classCode.toUpperCase())}, team ${st.team}.</p>
+      <div class="sign"><span>Lab manager (teacher) signature</span><span>Mark</span></div>
+    </article>`;
+  const P = new Plot($("#pb")); currentPlot = P;
+  P.lines = [{...st.lines.max, color:"--amber", dash:true, show:true}, {...st.lines.min, color:"--navy", dash:true, show:true}, {...st.lines.best, color:"--teal", show:true}];
+  P.setPoints(pts);
+  if ($("#pr")) $("#pr").onclick = () => window.print();
+  $("#cp").onclick = () => {
+    const t = `${LAB.code}: ${LAB.title} (${LAB.topic})\nClass ${st.classCode.toUpperCase()} · Team ${st.team} · ${st.track} · ${date}\nInvestigators: ${st.names}\n\n${LAB.specLabel}: ${specTxt()}\nGradient: ${st.a.grad} ${LAB.slopeUnit}\n${f} = ${st.a.fk} ± ${st.a.fdk} ${u} (${f} max ${st.a.kmax}, ${f} min ${st.a.kmin})\nIntercept: ${st.a.icpt}${hl ? ` ± ${st.a.dc}` : ""} ${iu} — ${iText}\n${hl ? `${LAB.hl.x0Label}: ${st.a.x0} ${LAB.hl.x0Unit} (${refWord()} ${st.a.zin === "yes" ? "inside" : "outside"} c ± Δc)\n` : ""}Anomaly: ${anomTxt}\nVerdict: ${(LAB.verdictWords || ["Meets spec","Does not meet spec"])[st.a.verdict === "meets" ? 0 : 1].toLowerCase()}\n\nClaim: ${st.a.c_claim}\nEvidence: ${st.a.c_evidence}\nReasoning: ${st.a.c_reasoning}\n`;
+    const done = () => $("#cpm").textContent = "Copied.";
+    const fallback = () => { const ta = document.createElement("textarea"); ta.value = t; ta.style.height = "160px"; $("#cpm").replaceWith(ta); ta.select(); };
+    try { navigator.clipboard.writeText(t).then(done, fallback); } catch(e){ fallback(); }
+  };
+}
+
+
+init();
+</script>
+
+</body>
+</html>
